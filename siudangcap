@@ -1,0 +1,363 @@
+-- LocalScript (StarterPlayerScripts)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
+local LocalPlayer = Players.LocalPlayer
+
+-- ===== GUI =====
+local gui = CoreGui:FindFirstChild("ESPMenu")
+if not gui then
+    gui = Instance.new("ScreenGui")
+    gui.Name = "ESPMenu"
+    gui.Parent = CoreGui
+end
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 200, 0, 150)
+frame.Position = UDim2.new(0,50,0,50)
+frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,10)
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1,0,0,30)
+title.BackgroundTransparency = 1
+title.Text = "ESP Menu"
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 20
+title.TextColor3 = Color3.new(1,1,1)
+
+local btnPet = Instance.new("TextButton", frame)
+btnPet.Size = UDim2.new(1,-20,0,30)
+btnPet.Position = UDim2.new(0,10,0,40)
+btnPet.Text = "ESP Pets: OFF"
+btnPet.BackgroundColor3 = Color3.fromRGB(80,80,80)
+btnPet.TextColor3 = Color3.new(1,1,1)
+
+local btnPlr = Instance.new("TextButton", frame)
+btnPlr.Size = UDim2.new(1,-20,0,30)
+btnPlr.Position = UDim2.new(0,10,0,80)
+btnPlr.Text = "ESP Players: OFF"
+btnPlr.BackgroundColor3 = Color3.fromRGB(80,80,80)
+btnPlr.TextColor3 = Color3.new(1,1,1)
+
+local btnTimer = Instance.new("TextButton", frame)
+btnTimer.Size = UDim2.new(1,-20,0,30)
+btnTimer.Position = UDim2.new(0,10,0,120)
+btnTimer.Text = "Timer ESP: OFF"
+btnTimer.BackgroundColor3 = Color3.fromRGB(80,80,80)
+btnTimer.TextColor3 = Color3.new(1,1,1)
+
+-- ===== Flags =====
+local espPets, espPlayers, timerESPEnabled = false, false, false
+
+-- ===== Helpers =====
+local function shownText(lbl)
+    if not lbl then return "" end
+    local ok,val = pcall(function() return lbl.ContentText end)
+    if ok and type(val)=="string" and val~="" then return val end
+    ok,val = pcall(function() return lbl.LocalizedText end)
+    if ok and type(val)=="string" and val~="" then return val end
+    return (lbl.Text or "")
+end
+
+local function parseNumber(text)
+    text = tostring(text or ""):gsub("[,%s]", "")
+    local num, suffix = text:match("([%d%.]+)([KMB]?)")
+    num = tonumber(num) or 0
+    if suffix then
+        suffix = suffix:upper()
+        if suffix == "K" then num = num * 1e3
+        elseif suffix == "M" then num = num * 1e6
+        elseif suffix == "B" then num = num * 1e9 end
+    end
+    return num
+end
+
+local function isTimeString(txt)
+    if not txt then return false end
+    txt = txt:lower()
+    if txt:match("%d+%s*h") or txt:match("%d+%s*m") or txt:match("%d+%s*s") then return true end
+    if txt:match("^%d+:%d+$") then return true end
+    return false
+end
+
+local function scoreNameCandidate(txt)
+    txt = tostring(txt or ""):lower()
+    if txt=="" or txt:match("[%d%$%,KMBT/]+") then return -1 end
+    return #txt
+end
+
+local function findNiceNameLabel(genLabel)
+    local container = genLabel.Parent
+    local best,bestScore = nil,-1
+    local function scan(c)
+        for _,obj in ipairs(c:GetChildren()) do
+            if obj:IsA("TextLabel") and obj~=genLabel then
+                local sc = scoreNameCandidate(shownText(obj))
+                if sc>bestScore then best,bestScore=obj,sc end
+            end
+        end
+    end
+    if container then scan(container) end
+    if container and container.Parent then scan(container.Parent) end
+    local model = genLabel:FindFirstAncestorWhichIsA("Model")
+    if model then scan(model) end
+    return best
+end
+
+local function findAnchor(inst)
+    if not inst then return nil end
+    local model = inst:FindFirstAncestorWhichIsA("Model")
+    if model then
+        if model.PrimaryPart then return model.PrimaryPart end
+        for _,p in ipairs(model:GetDescendants()) do
+            if p:IsA("BasePart") then return p end
+        end
+        return model
+    end
+    return inst
+end
+
+-- ===== PET ESP =====
+local current = {highestGen=nil, pedestal=nil, hl=nil, box=nil, label=nil, valueLabel=nil}
+
+local function clearPetDisplay()
+    if current.pedestal then current.pedestal:Destroy() end
+    if current.hl then current.hl:Destroy() end
+    if current.box then current.box:Destroy() end
+    if current.label then current.label:Destroy() end
+    current = {highestGen=nil, pedestal=nil, hl=nil, box=nil, label=nil, valueLabel=nil}
+end
+
+local function createPetDisplay(genLabel)
+    clearPetDisplay()
+    current.highestGen = genLabel
+    local anchor = findAnchor(genLabel)
+    if not anchor then return end
+    local anchorY = (anchor.Size and anchor.Size.Y) or 4
+    local nameLabel = findNiceNameLabel(genLabel)
+    local displayName = nameLabel and shownText(nameLabel) or "Unknown"
+
+    local pedestal = Instance.new("Part")
+    pedestal.Size = Vector3.new(6,0.6,6)
+    pedestal.Anchored = true
+    pedestal.CanCollide = false
+    pedestal.Material = Enum.Material.Neon
+    pedestal.Color = Color3.fromRGB(0,0,255)
+    pedestal.Transparency = 0.4
+    pedestal.CFrame = anchor.CFrame*CFrame.new(0,-anchorY/2-0.8,0)
+    pedestal.Parent = workspace
+    current.pedestal = pedestal
+
+    local box = Instance.new("BoxHandleAdornment")
+    box.Adornee = pedestal
+    box.Size = pedestal.Size
+    box.AlwaysOnTop = true
+    box.Color3 = pedestal.Color
+    box.Transparency = 0.5
+    box.Parent = pedestal
+    current.box = box
+
+    local hl = Instance.new("Highlight")
+    hl.Adornee = anchor
+    hl.FillColor = Color3.fromRGB(0,255,0)
+    hl.FillTransparency = 0.5
+    hl.OutlineColor = Color3.new(1,1,1)
+    hl.Parent = workspace
+    current.hl = hl
+
+    local bb = Instance.new("BillboardGui")
+    bb.Size = UDim2.new(0,150,0,40)
+    bb.StudsOffset = Vector3.new(0,1,0)
+    bb.AlwaysOnTop = true
+    bb.Adornee = pedestal
+    bb.Parent = pedestal
+
+    local nameLbl = Instance.new("TextLabel", bb)
+    nameLbl.Size = UDim2.new(1,0,0.5,0)
+    nameLbl.BackgroundTransparency = 1
+    nameLbl.Text = displayName
+    nameLbl.TextScaled = true
+    nameLbl.Font = Enum.Font.SourceSansBold
+    nameLbl.TextStrokeTransparency = 0
+    nameLbl.TextColor3 = Color3.fromRGB(0,255,0)
+
+    local valLbl = Instance.new("TextLabel", bb)
+    valLbl.Size = UDim2.new(1,0,0.5,0)
+    valLbl.Position = UDim2.new(0,0,0.5,0)
+    valLbl.BackgroundTransparency = 1
+    valLbl.Text = shownText(genLabel)
+    valLbl.TextScaled = true
+    valLbl.Font = Enum.Font.SourceSansBold
+    valLbl.TextStrokeTransparency = 0
+    valLbl.TextColor3 = Color3.fromRGB(255,255,0)
+    current.label = bb
+    current.valueLabel = valLbl
+end
+
+local function evaluateHighest()
+    local best, val = nil, 0
+    for _,v in ipairs(Workspace:GetDescendants()) do
+        if v:IsA("TextLabel") and v.Name=="Generation" then
+            local txt = shownText(v)
+            if not isTimeString(txt) then
+                local num = parseNumber(txt)
+                if num > val then val, best = num, v end
+            end
+        end
+    end
+
+    if best ~= current.highestGen then
+        if best then
+            -- Chỉ destroy + tạo mới khi pet khác
+            createPetDisplay(best)
+        else
+            clearPetDisplay()
+        end
+    elseif current.highestGen then
+        -- Chỉ update giá trị text, không tạo lại
+        if current.valueLabel then
+            current.valueLabel.Text = shownText(current.highestGen)
+        end
+        if current.pedestal and current.highestGen then
+            local anchor = findAnchor(current.highestGen)
+            if anchor then
+                local anchorY = (anchor.Size and anchor.Size.Y) or 4
+                current.pedestal.CFrame = anchor.CFrame*CFrame.new(0,-anchorY/2-0.8,0)
+                current.hl.Adornee = anchor
+            end
+        end
+    end
+end
+
+-- ===== PLAYER ESP =====
+local function clearESPPlayer(p)
+    if p.Character then
+        for _,c in pairs(p.Character:GetChildren()) do
+            if c:IsA("Highlight") or c:IsA("BillboardGui") then c:Destroy() end
+        end
+    end
+end
+
+local function addESPPlayer(p)
+    if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+        if not p.Character:FindFirstChild("ESP_HL") then
+            local hl = Instance.new("Highlight")
+            hl.Name="ESP_HL"
+            hl.FillColor = Color3.fromRGB(0,0,255)
+            hl.FillTransparency = 0.6
+            hl.OutlineColor = Color3.new(1,1,1)
+            hl.Adornee = p.Character
+            hl.Parent = p.Character
+        end
+        if not p.Character:FindFirstChild("ESP_BB") then
+            local bb = Instance.new("BillboardGui")
+            bb.Name="ESP_BB"
+            bb.Size=UDim2.new(0,120,0,30)
+            bb.StudsOffset=Vector3.new(0,3,0)
+            bb.AlwaysOnTop=true
+            bb.Adornee=p.Character:FindFirstChild("HumanoidRootPart")
+            bb.Parent=p.Character
+
+            local lbl = Instance.new("TextLabel",bb)
+            lbl.Size = UDim2.new(1,0,1,0)
+            lbl.BackgroundTransparency = 1
+            lbl.TextColor3 = Color3.fromRGB(255,255,0)
+            lbl.TextScaled = true
+            lbl.Font = Enum.Font.SourceSansBold
+            lbl.TextStrokeTransparency = 0
+            lbl.Text = p.Name
+        end
+    end
+end
+
+-- ===== TIMER ESP =====
+local timerESPFolder = Instance.new("Folder")
+timerESPFolder.Name = "PlotBlockTimerESP"
+timerESPFolder.Parent = LocalPlayer:WaitForChild("PlayerGui")
+local timerESPData = {}
+local timerConn
+
+local function attachTimerESP(plot)
+    local remaining = plot:FindFirstChild("RemainingTime", true)
+    local main = plot:FindFirstChild("Main", true) or plot:FindFirstChildWhichIsA("BasePart", true)
+    if not remaining or not main then return end
+    if timerESPData[plot] then return end
+
+    local bb = Instance.new("BillboardGui")
+    bb.Name="ESP_Timer"
+    bb.Adornee = main
+    bb.Size=UDim2.new(0,84,0,28)
+    bb.StudsOffset=Vector3.new(0,3,0)
+    bb.AlwaysOnTop=true
+    bb.Parent = timerESPFolder
+
+    local lbl = Instance.new("TextLabel",bb)
+    lbl.Size=UDim2.new(1,0,1,0)
+    lbl.BackgroundTransparency = 1
+    lbl.TextColor3=Color3.fromRGB(255,255,0)
+    lbl.TextScaled=true
+    lbl.Font=Enum.Font.GothamBold
+    lbl.TextStrokeTransparency = 0
+    lbl.Text = remaining.Text
+
+    timerESPData[plot]={Billboard=bb,Label=lbl,Remaining=remaining}
+end
+
+local function toggleTimerESP(state)
+    timerESPEnabled = state
+    if state then
+        for _,plot in pairs(Workspace:GetDescendants()) do
+            if plot:IsA("Model") and plot.Name=="PlotBlock" then attachTimerESP(plot) end
+        end
+        Workspace.DescendantAdded:Connect(function(plot)
+            if timerESPEnabled and plot:IsA("Model") and plot.Name=="PlotBlock" then attachTimerESP(plot) end
+        end)
+        timerConn = RunService.RenderStepped:Connect(function()
+            for plot,data in pairs(timerESPData) do
+                if data.Remaining.Parent then
+                    data.Label.Text = data.Remaining.Text
+                    data.Billboard.Enabled = true
+                else
+                    data.Billboard.Enabled = false
+                end
+            end
+        end)
+    else
+        if timerConn then timerConn:Disconnect() timerConn=nil end
+        for _,data in pairs(timerESPData) do if data.Billboard then data.Billboard:Destroy() end end
+        timerESPData={}
+    end
+end
+
+-- ===== Loop =====
+RunService.RenderStepped:Connect(function()
+    if espPets then evaluateHighest() end
+    if espPlayers then
+        for _,p in pairs(Players:GetPlayers()) do
+            if p~=LocalPlayer then addESPPlayer(p) end
+        end
+    else
+        for _,p in pairs(Players:GetPlayers()) do
+            clearESPPlayer(p)
+        end
+    end
+end)
+
+-- ===== Buttons =====
+btnPet.MouseButton1Click:Connect(function()
+    espPets=not espPets
+    btnPet.Text="ESP Pets: "..(espPets and "ON" or "OFF")
+end)
+btnPlr.MouseButton1Click:Connect(function()
+    espPlayers=not espPlayers
+    btnPlr.Text="ESP Players: "..(espPlayers and "ON" or "OFF")
+end)
+btnTimer.MouseButton1Click:Connect(function()
+    toggleTimerESP(not timerESPEnabled)
+    btnTimer.Text="Timer ESP: "..(timerESPEnabled and "ON" or "OFF")
+end)

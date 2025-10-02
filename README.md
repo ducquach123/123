@@ -3,7 +3,7 @@ task.wait(2)
 
 -- 🪄 Danh sách targets (DisplayName.LocalizedText)
 local targets = {
-    "te te te sahur", -- 250K
+    "Te Te Te Sahur", -- 250K
 }
 
 -- 🌐 Webhook

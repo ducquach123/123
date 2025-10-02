@@ -1,7 +1,7 @@
 repeat task.wait() until game:IsLoaded()
 task.wait(2)
 
--- 🪄 Danh sách targets (DisplayName.LocalizedText)
+-- 🪄 Danh sách targets (DisplayName)
 local targets = {
     "te te te sahur",
 }
@@ -10,16 +10,16 @@ local targets = {
 local HttpService = game:GetService("HttpService")
 local url = "https://discord.com/api/webhooks/1422467802744356955/MtviPDZEJ2mnRUkErjusdNheW3exDBVGPCg-1AXvmHjnai17llKqA1NMTeKwetjSp05k"
 
--- 📦 Join script để gửi lên Discord
+-- 📦 Join script
 local joinScript = 'game:GetService("TeleportService"):TeleportToPlaceInstance(' ..
     game.PlaceId .. ', "' .. game.JobId .. '", game.Players.LocalPlayer)'
 
--- 🔍 Check targets trong DisplayName.LocalizedText
+-- 🔍 Check DisplayName (TextLabel)
 local function checkPlots()
     local foundList = {}
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("TextLabel") and obj.Name == "DisplayName" then
-            local txt = string.lower(obj.LocalizedText or "")
+            local txt = string.lower(obj.Text or obj.ContentText or "")
             for _, name in ipairs(targets) do
                 if string.find(txt, string.lower(name)) then
                     table.insert(foundList, txt)
@@ -77,19 +77,12 @@ pcall(function()
     local HttpService = game:GetService("HttpService")
 
     local actualHour = os.date("!*t").hour
-    local fileName = "NotSameServers_" .. Players.LocalPlayer.UserId .. ".json"
-    local AllIDs = {}
+    -- random để không chất đồng file
+    local fileName = "NotSameServers_" .. math.random(1,99999) .. ".json"
+    local AllIDs = {actualHour}
 
-    -- Đọc file
-    pcall(function()
-        local data = HttpService:JSONDecode(readfile(fileName))
-        if type(data) == "table" then
-            AllIDs = data
-        end
-    end)
-    if #AllIDs == 0 then AllIDs = {actualHour} end
+    local hopCount = 0
 
-    -- Hàm lấy danh sách server
     local function ListServers(cursor)
         local url = "https://games.roblox.com/v1/games/" .. PlaceID .. "/servers/Public?sortOrder=Asc&limit=100"
         if cursor then url = url .. "&cursor=" .. cursor end
@@ -101,9 +94,74 @@ pcall(function()
         return {data={}}
     end
 
-    -- Hàm teleport (API hop trước, fallback Roblox hop)
     local function TPReturner()
         local servers = ListServers(foundAnything)
+        if servers.nextPageCursor then
+            foundAnything = servers.nextPageCursor
+        else
+            -- fallback Roblox hop
+            warn("⚠️ Hết API server list → dùng Roblox hop")
+            TeleportService:Teleport(PlaceID, Players.LocalPlayer)
+            return
+        end
+
+        local teleported = false
+        for _, v in ipairs(servers.data) do
+            local id = tostring(v.id)
+            if v.playing < v.maxPlayers and id ~= game.JobId then
+                if AllIDs[1] ~= actualHour then AllIDs = {actualHour} end
+                if not table.find(AllIDs, id) then
+                    table.insert(AllIDs, id)
+                    pcall(function() writefile(fileName, HttpService:JSONEncode(AllIDs)) end)
+                    hopCount += 1
+                    print("🔄 Teleporting tới server:", id, " | " .. v.playing .. "/" .. v.maxPlayers)
+                    TeleportService:TeleportToPlaceInstance(PlaceID, id, Players.LocalPlayer)
+                    teleported = true
+                    task.wait(math.random(70,100)/100) -- 0.7s - 1s
+                    break
+                end
+            end
+        end
+
+        if not teleported then
+            warn("⚠️ Không có server hợp lệ → fallback Teleport()")
+            TeleportService:Teleport(PlaceID, Players.LocalPlayer)
+        end
+
+        -- fallback Roblox hop sau 100 lần
+        if hopCount >= 100 then
+            warn("⚠️ Hop 100 server không thành công → fallback Roblox hop")
+            TeleportService:Teleport(PlaceID, Players.LocalPlayer)
+        end
+    end
+
+    -- Vòng lặp chính
+    while task.wait(2) do
+        local found = checkPlots()
+        if #found > 0 then
+            print("🎯 Thấy target, ở lại tối đa 6s...")
+            local stayTime, step, elapsed = 6, 2, 0
+            while elapsed < stayTime do
+                local recheck = checkPlots()
+                if #recheck > 0 then
+                    sendWebhook(recheck)
+                else
+                    print("❌ Target biến mất -> đổi server ngay")
+                    pcall(TPReturner)
+                    break
+                end
+                task.wait(step); elapsed = elapsed + step
+            end
+            if elapsed >= stayTime then
+                print("⏰ Hết 6s -> đổi server")
+                pcall(TPReturner)
+            end
+        else
+            print("❌ Không thấy target -> đổi server ngay")
+            pcall(TPReturner)
+        end
+    end
+end)        local servers = ListServers(foundAnything)
         if servers.nextPageCursor then
             foundAnything = servers.nextPageCursor
         else

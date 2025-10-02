@@ -3,7 +3,38 @@ task.wait(2)
 
 -- 🪄 Danh sách targets (DisplayName)
 local targets = {
-    "te te te sahur",
+    "Strawberry Elephant",
+    "Graipuss Medussi",
+    "To to to Sahur",
+    "Pot Hotspot",
+    "Chicleteira Bicicleteira",
+    "Los Chicleteiras",
+    "La Grande Combinasion",
+    "Nuclearo Dinossauro",
+    "Esok Sekolah",
+    "Ketupat Kepat",
+    "Money Money Puggy",
+    "Tictac Sahur",
+    "Ketchuru and Musturu",
+    "Garama and Madundung",
+    "Spaghetti Tualetti",
+    "Dragon Cannelloni",
+    "67",
+    "Mariachi Corazoni",
+    "Tacorita Bicicleta",
+    "La Extinct Grande",
+    "Quesadilla Crocodila",
+    "Los Nooo My Hotspotsitos",
+    "Las Sis",
+    "Celularcini Viciosini",
+    "Los Bros",
+    "Tralaledon",
+    "Los Tacoritas",
+    "Los Primos",
+    "La Sahur Combinasion",
+    "Los Combinasionas",
+    "Los Hotspotsitos",
+    "La Supreme Combinasion"
 }
 
 -- 🌐 Webhook
@@ -77,10 +108,8 @@ pcall(function()
     local HttpService = game:GetService("HttpService")
 
     local actualHour = os.date("!*t").hour
-    -- random để không chất đồng file
     local fileName = "NotSameServers_" .. math.random(1,99999) .. ".json"
     local AllIDs = {actualHour}
-
     local hopCount = 0
 
     local function ListServers(cursor)
@@ -99,7 +128,6 @@ pcall(function()
         if servers.nextPageCursor then
             foundAnything = servers.nextPageCursor
         else
-            -- fallback Roblox hop
             warn("⚠️ Hết API server list → dùng Roblox hop")
             TeleportService:Teleport(PlaceID, Players.LocalPlayer)
             return
@@ -117,7 +145,7 @@ pcall(function()
                     print("🔄 Teleporting tới server:", id, " | " .. v.playing .. "/" .. v.maxPlayers)
                     TeleportService:TeleportToPlaceInstance(PlaceID, id, Players.LocalPlayer)
                     teleported = true
-                    task.wait(math.random(70,100)/100) -- 0.7s - 1s
+                    task.wait(math.random(70,100)/100) -- 0.7–1s
                     break
                 end
             end
@@ -128,7 +156,6 @@ pcall(function()
             TeleportService:Teleport(PlaceID, Players.LocalPlayer)
         end
 
-        -- fallback Roblox hop sau 100 lần
         if hopCount >= 100 then
             warn("⚠️ Hop 100 server không thành công → fallback Roblox hop")
             TeleportService:Teleport(PlaceID, Players.LocalPlayer)
@@ -137,66 +164,6 @@ pcall(function()
 
     -- Vòng lặp chính
     while task.wait(2) do
-        local found = checkPlots()
-        if #found > 0 then
-            print("🎯 Thấy target, ở lại tối đa 6s...")
-            local stayTime, step, elapsed = 6, 2, 0
-            while elapsed < stayTime do
-                local recheck = checkPlots()
-                if #recheck > 0 then
-                    sendWebhook(recheck)
-                else
-                    print("❌ Target biến mất -> đổi server ngay")
-                    pcall(TPReturner)
-                    break
-                end
-                task.wait(step); elapsed = elapsed + step
-            end
-            if elapsed >= stayTime then
-                print("⏰ Hết 6s -> đổi server")
-                pcall(TPReturner)
-            end
-        else
-            print("❌ Không thấy target -> đổi server ngay")
-            pcall(TPReturner)
-        end
-    end
-end)        local servers = ListServers(foundAnything)
-        if servers.nextPageCursor then
-            foundAnything = servers.nextPageCursor
-        else
-            -- 🚨 Hết server API → dùng Roblox hop
-            warn("⚠️ Hết danh sách API, fallback Teleport()")
-            TeleportService:Teleport(PlaceID, Players.LocalPlayer)
-            return
-        end
-
-        local teleported = false
-        for _, v in ipairs(servers.data) do
-            local id = tostring(v.id)
-            if v.playing < v.maxPlayers and id ~= game.JobId then
-                if AllIDs[1] ~= actualHour then AllIDs = {actualHour} end
-                if not table.find(AllIDs, id) then
-                    table.insert(AllIDs, id)
-                    pcall(function() writefile(fileName, HttpService:JSONEncode(AllIDs)) end)
-                    print("🔄 Teleporting tới server:", id, " | " .. v.playing .. "/" .. v.maxPlayers)
-                    TeleportService:TeleportToPlaceInstance(PlaceID, id, Players.LocalPlayer)
-                    teleported = true
-                    task.wait(0.5)
-                    break
-                end
-            end
-        end
-
-        -- Nếu không Teleport được server nào → fallback Roblox hop
-        if not teleported then
-            warn("⚠️ Không có server hợp lệ → fallback Teleport()")
-            TeleportService:Teleport(PlaceID, Players.LocalPlayer)
-        end
-    end
-
-    -- Vòng lặp chính
-    while task.wait(3) do
         local found = checkPlots()
         if #found > 0 then
             print("🎯 Thấy target, ở lại tối đa 6s...")

@@ -163,27 +163,4 @@ pcall(function()
             pcall(TPReturner)
         end
     end
-end)        if #found > 0 then
-            print("🎯 Thấy target, ở lại tối đa 6s...")
-            local stayTime, step, elapsed = 6, 2, 0
-            while elapsed < stayTime do
-                local recheck = checkPlots()
-                if #recheck > 0 then
-                    sendWebhook(recheck)
-                else
-                    print("❌ Target biến mất -> đổi server ngay")
-                    pcall(TPReturner)
-                    break
-                end
-                task.wait(step); elapsed = elapsed + step
-            end
-            if elapsed >= stayTime then
-                print("⏰ Hết 6s -> đổi server")
-                pcall(TPReturner)
-            end
-        else
-            print("❌ Không thấy target -> đổi server ngay")
-            pcall(TPReturner)
-        end
-    end
 end)

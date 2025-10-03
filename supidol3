@@ -1,9 +1,9 @@
 repeat task.wait() until game:IsLoaded()
 task.wait(2)
 
--- 🪄 Danh sách targets
+-- 🎯 Danh sách target (LocalizedText)
 local targets = {
-    "Strawberry Elephant","Graipuss Medussi","To to to Sahur","Pot Hotspot","Chicleteira Bicicleteira",
+    "To to to Sahur","Pot Hotspot","Chicleteira Bicicleteira",
     "Los Chicleteiras","La Grande Combinasion","Nuclearo Dinossauro","Esok Sekolah","Ketupat Kepat",
     "Money Money Puggy","Tictac Sahur","Ketchuru and Musturu","Garama and Madundung","Spaghetti Tualetti",
     "Dragon Cannelloni","67","Mariachi Corazoni","Tacorita Bicicleta","La Extinct Grande",
@@ -14,52 +14,48 @@ local targets = {
 
 -- 🌐 Webhook
 local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local TeleportService = game:GetService("TeleportService")
-local MarketplaceService = game:GetService("MarketplaceService")
+local url = "https://discord.com/api/webhooks/1422467802744356955/MtviPDZEJ2mnRUkErjusdNheW3exDBVGPCg-1AXvmHjnai17llKqA1NMTeKwetjSp05k"
 
-local url = "https://discord.com/api/webhooks/xxxxxxxx/xxxxxxxx"
-
+-- 📜 Join Script
 local joinScript = 'game:GetService("TeleportService"):TeleportToPlaceInstance(' ..
     game.PlaceId .. ', "' .. game.JobId .. '", game.Players.LocalPlayer)'
 
--- 🔍 Check targets trong DisplayName.LocalizedText
-local function checkPlots()
-    local foundList = {}
+-- 🔍 Check target trong DisplayName.LocalizedText
+-- 🔍 Check target trong DisplayName.LocalizedText
+local function checkTargets()
+    local foundTargets = {}
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("TextLabel") and obj.Name == "DisplayName" then
             local txt = string.lower(obj.LocalizedText or "")
             for _, name in ipairs(targets) do
                 if string.find(txt, string.lower(name)) then
-                    table.insert(foundList, txt)
+                    if not table.find(foundTargets, name) then
+                        table.insert(foundTargets, name)
+                    end
                 end
             end
         end
     end
-    return foundList
+    return #foundTargets > 0, foundTargets
 end
 
+
 -- 📤 Gửi webhook
-local function sendWebhook(foundList)
-    if #foundList == 0 then return end
-
-    local descriptionText = ""
-    for _, name in ipairs(foundList) do
-        descriptionText = descriptionText .. "✅ " .. name .. "\n"
-    end
-
+-- 📤 Gửi webhook
+local function sendWebhook(foundTargets)
+    local Players = game:GetService("Players")
     local payload = {
         ["embeds"] = { {
             ["title"] = "🎯 Target Detected!",
-            ["description"] = descriptionText,
+            ["description"] = "✅ " .. table.concat(foundTargets, ", "),
             ["color"] = 0x00FF00,
             ["fields"] = {
                 {["name"] = "👥 Players", ["value"] = tostring(#Players:GetPlayers()) .. " / " .. tostring(Players.MaxPlayers), ["inline"] = true},
                 {["name"] = "🆔 JobId", ["value"] = "`" .. game.JobId .. "`", ["inline"] = false},
-                {["name"] = "🎮 Game", ["value"] = "**" .. MarketplaceService:GetProductInfo(game.PlaceId).Name .. "**", ["inline"] = false},
+                {["name"] = "🎮 Game", ["value"] = "**" .. game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name .. "**", ["inline"] = false},
                 {["name"] = "📜 Join Script", ["value"] = "```lua\n" .. joinScript .. "\n```", ["inline"] = false}
             },
-            ["footer"] = {["text"] = "Spyder Scanner | User: " .. Players.LocalPlayer.Name},
+            ["footer"] = {["text"] = "Spyder Scanner | User: " .. game.Players.LocalPlayer.Name},
             ["timestamp"] = DateTime.now():ToIsoDate()
         }},
         ["username"] = "Spyder Scanner"
@@ -73,24 +69,24 @@ local function sendWebhook(foundList)
             Body = HttpService:JSONEncode(payload)
         })
     end)
-    print("✅ Đã gửi webhook")
+    print("✅ Đã gửi webhook:", table.concat(foundTargets, ", "))
 end
 
--- 🚪 Server hop (logic lấy từ script bạn gửi)
+
+-- 🚪 Server hop (logic full)
 pcall(function()
     local TeleportService = game:GetService("TeleportService")
-    local HttpService = game:GetService("HttpService")
     local Players = game:GetService("Players")
- 
+
     local PlaceID = game.PlaceId
     local foundAnything = ""
-    local AllIDs = {}
     local actualHour = os.date("!*t").hour
- 
-    -- 📂 File riêng cho từng acc + từng tab (unique)
+    local AllIDs = {}
+
+    -- 📂 File riêng cho từng acc (theo UserId)
     local fileName = "NotSameServers_" .. Players.LocalPlayer.UserId .. ".json"
- 
-    -- Đọc file lưu server
+
+    -- Đọc file
     local success, result = pcall(function()
         return HttpService:JSONDecode(readfile(fileName))
     end)
@@ -102,10 +98,10 @@ pcall(function()
             writefile(fileName, HttpService:JSONEncode(AllIDs))
         end)
     end
- 
+
     -- Hàm lấy danh sách server
-    local function ListServers(cursor)
-task.wait(math.random(1,5))
+   local function ListServers(cursor)
+       task.wait(math.random(1,5))
         local url = "https://games.roblox.com/v1/games/" .. PlaceID .. "/servers/Public?sortOrder=Asc&limit=100"
         if cursor then
             url = url .. "&cursor=" .. cursor
@@ -119,37 +115,52 @@ task.wait(math.random(1,5))
         end
         return {data={}}
     end
- 
+
     -- Hàm teleport
-    local function TPReturner()
-        local servers = ListServers(foundAnything)
-        if servers.nextPageCursor then
-            foundAnything = servers.nextPageCursor
+    -- Hàm teleport
+local function TPReturner()
+    -- 🔍 check target trong server hiện tại
+    local found, foundTargets = checkTargets()
+    if found then
+        -- ⏳ Ở lại 6 giây, mỗi 2s gửi webhook/check lại
+        for i = 1, 3 do
+            sendWebhook(foundTargets)
+            print("🎯 Target(s):", table.concat(foundTargets, ", "), " | Check lần:", i)
+            task.wait(2)
+            found, foundTargets = checkTargets()
         end
- 
-        for _, v in ipairs(servers.data) do
-            local id = tostring(v.id)
-            if v.playing < v.maxPlayers and id ~= game.JobId then
-                -- Reset mỗi giờ
-                if AllIDs[1] ~= actualHour then
-                    AllIDs = {actualHour}
-                end
- 
-                if not table.find(AllIDs, id) then
-                    table.insert(AllIDs, id)
-                    pcall(function()
-                        writefile(fileName, HttpService:JSONEncode(AllIDs))
-                    end)
-                    print("🔄 Teleporting tới server:", id, " | " .. v.playing .. "/" .. v.maxPlayers)
-                    TeleportService:TeleportToPlaceInstance(PlaceID, id, Players.LocalPlayer)
-                    task.wait(0.5)
-                end
+        print("⏳ Đã ở lại 6s -> tiếp tục hop...")
+    end
+
+    -- 🔄 Hop sang server khác
+    local servers = ListServers(foundAnything)
+    if servers.nextPageCursor then
+        foundAnything = servers.nextPageCursor
+    end
+
+    for _, v in ipairs(servers.data) do
+        local id = tostring(v.id)
+        if v.playing < v.maxPlayers and id ~= game.JobId then
+            -- Reset mỗi giờ
+            if AllIDs[1] ~= actualHour then
+                AllIDs = {actualHour}
+            end
+
+            if not table.find(AllIDs, id) then
+                table.insert(AllIDs, id)
+                pcall(function()
+                    writefile(fileName, HttpService:JSONEncode(AllIDs))
+                end)
+                print("🔄 Teleporting tới server:", id, " | " .. v.playing .. "/" .. v.maxPlayers)
+                TeleportService:TeleportToPlaceInstance(PlaceID, id, Players.LocalPlayer)
+                task.wait(0.5)
             end
         end
     end
- 
-    -- vòng lặp server hop
-    while task.wait(0,65) do
-        pcall(TPReturner)
-    end
+end
+
+-- 🔁 vòng lặp server hop (0.7s mỗi lần)
+while task.wait(0.7) do
+    pcall(TPReturner)
+end
 end)

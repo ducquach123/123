@@ -3,7 +3,7 @@ task.wait(2)
 
 -- 🎯 Danh sách target (LocalizedText)
 local targets = {
-    "To to to Sahur","Pot Hotspot","Chicleteira Bicicleteira",
+    "Strawberry Elephant","Graipuss Medussi","To to to Sahur","Pot Hotspot","Chicleteira Bicicleteira",
     "Los Chicleteiras","La Grande Combinasion","Nuclearo Dinossauro","Esok Sekolah","Ketupat Kepat",
     "Money Money Puggy","Tictac Sahur","Ketchuru and Musturu","Garama and Madundung","Spaghetti Tualetti",
     "Dragon Cannelloni","67","Mariachi Corazoni","Tacorita Bicicleta","La Extinct Grande",

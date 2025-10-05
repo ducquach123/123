@@ -9,7 +9,7 @@ local targets = {
     "Dragon Cannelloni","67","Mariachi Corazoni","Tacorita Bicicleta","La Extinct Grande",
     "Quesadilla Crocodila","Los Nooo My Hotspotsitos","Las Sis","Celularcini Viciosini","Los Bros",
     "Tralaledon","Los Tacoritas","Los Primos","La Sahur Combinasion","Los Combinasionas",
-    "Los Hotspotsitos","La Supreme Combinasion"
+    "Los Hotspotsitos","La Supreme Combinasion","Los 67","La Secret Combinasion","Burguro And Fryuro"
 }
 
 -- 🌐 Webhook
@@ -84,7 +84,7 @@ pcall(function()
     local AllIDs = {}
 
     -- 📂 File riêng cho từng acc (theo UserId)
-    local fileName = "NotSameServers_" .. Players.LocalPlayer.UserId .. ".json"
+    local fileName = "NotSameServers".json"
 
     -- Đọc file
     local success, result = pcall(function()

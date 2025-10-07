@@ -53,10 +53,8 @@ local function sendWebhook(foundTargets)
             ["color"] = 0x00FF00,
             ["fields"] = {
                 {["name"] = "👥 Players", ["value"] = tostring(#Players:GetPlayers()) .. " / " .. tostring(Players.MaxPlayers), ["inline"] = true},
-                {["name"] = "🆔 JobId", ["value"] = "`" .. game.JobId .. "`", ["inline"] = true},
                 {["name"] = "🌐 Join Link", ["value"] = "[Click to Join](" .. getJoinLink() .. ")", ["inline"] = false},
-                {["name"] = "📜 Join Script", ["value"] = "```lua\n" .. getJoinScript() .. "\n```", ["inline"] = false},
-                {["name"] = "🎮 Game", ["value"] = "**" .. game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name .. "**", ["inline"] = false}
+                {["name"] = "📜 Join Script", ["value"] = "```lua\n" .. getJoinScript() .. "\n```", ["inline"] = false}
             },
             ["footer"] = {["text"] = "Spyder Scanner | User: " .. game.Players.LocalPlayer.Name},
             ["timestamp"] = DateTime.now():ToIsoDate()

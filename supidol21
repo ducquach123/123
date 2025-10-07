@@ -9,18 +9,23 @@ local targets = {
     "Dragon Cannelloni","67","Mariachi Corazoni","Tacorita Bicicleta","La Extinct Grande",
     "Quesadilla Crocodila","Los Nooo My Hotspotsitos","Las Sis","Celularcini Viciosini","Los Bros",
     "Tralaledon","Los Tacoritas","Los Primos","La Sahur Combinasion","Los Combinasionas",
-    "Los Hotspotsitos","La Supreme Combinasion"
+    "Los Hotspotsitos","La Supreme Combinasion","Los 67","La Secret Combinasion","Burguro And Fryuro"
 }
 
 -- 🌐 Webhook
 local HttpService = game:GetService("HttpService")
 local url = "https://discord.com/api/webhooks/1422467802744356955/MtviPDZEJ2mnRUkErjusdNheW3exDBVGPCg-1AXvmHjnai17llKqA1NMTeKwetjSp05k"
 
--- 📜 Join Script
-local joinScript = 'game:GetService("TeleportService"):TeleportToPlaceInstance(' ..
-    game.PlaceId .. ', "' .. game.JobId .. '", game.Players.LocalPlayer)'
+-- 📜 Join Script + Link
+local function getJoinScript()
+    return 'game:GetService("TeleportService"):TeleportToPlaceInstance(' .. game.PlaceId .. ', "' .. game.JobId .. '", game.Players.LocalPlayer)'
+end
 
--- 🔍 Check target trong DisplayName.LocalizedText
+local function getJoinLink()
+    return "https://chillihub1.github.io/chillihub-joiner/?placeId=" .. game.PlaceId .. "&gameInstanceId=" .. game.JobId
+end
+
+-- 🔍 Check target
 local function checkTargets()
     local foundTargets = {}
     for _, obj in ipairs(workspace:GetDescendants()) do
@@ -48,9 +53,10 @@ local function sendWebhook(foundTargets)
             ["color"] = 0x00FF00,
             ["fields"] = {
                 {["name"] = "👥 Players", ["value"] = tostring(#Players:GetPlayers()) .. " / " .. tostring(Players.MaxPlayers), ["inline"] = true},
-                {["name"] = "🆔 JobId", ["value"] = "`" .. game.JobId .. "`", ["inline"] = false},
-                {["name"] = "🎮 Game", ["value"] = "**" .. game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name .. "**", ["inline"] = false},
-                {["name"] = "📜 Join Script", ["value"] = "```lua\n" .. joinScript .. "\n```", ["inline"] = false}
+                {["name"] = "🆔 JobId", ["value"] = "`" .. game.JobId .. "`", ["inline"] = true},
+                {["name"] = "🌐 Join Link", ["value"] = "[Click to Join](" .. getJoinLink() .. ")", ["inline"] = false},
+                {["name"] = "📜 Join Script", ["value"] = "```lua\n" .. getJoinScript() .. "\n```", ["inline"] = false},
+                {["name"] = "🎮 Game", ["value"] = "**" .. game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name .. "**", ["inline"] = false}
             },
             ["footer"] = {["text"] = "Spyder Scanner | User: " .. game.Players.LocalPlayer.Name},
             ["timestamp"] = DateTime.now():ToIsoDate()
@@ -69,18 +75,17 @@ local function sendWebhook(foundTargets)
     print("✅ Đã gửi webhook:", table.concat(foundTargets, ", "))
 end
 
--- 🚪 Server hop (logic full)
+-- 🚪 Server hop
 pcall(function()
     local TeleportService = game:GetService("TeleportService")
     local Players = game:GetService("Players")
 
     local PlaceID = game.PlaceId
     local foundAnything = ""
-    local actualHour = os.date("!*t").hour
     local AllIDs = {}
 
-    -- 📂 File riêng cho từng acc (theo UserId)
-    local fileName = "NotSameServers_" .. Players.LocalPlayer.UserId .. ".json"
+    -- 📂 File chung
+    local fileName = "AllServers.json"
 
     -- Đọc file
     local success, result = pcall(function()
@@ -89,38 +94,55 @@ pcall(function()
     if success and type(result) == "table" then
         AllIDs = result
     else
-        AllIDs = {actualHour}
+        AllIDs = {}
         pcall(function()
             writefile(fileName, HttpService:JSONEncode(AllIDs))
         end)
     end
 
-    -- Hàm lấy danh sách server
-    local function ListServers(cursor)
-        task.wait(math.random(1,5))
-        local url = "https://games.roblox.com/v1/games/" .. PlaceID .. "/servers/Public?sortOrder=Asc&limit=100"
-        if cursor then
-            url = url .. "&cursor=" .. cursor
+    -- Lưu JobId mới (tối đa 10)
+    local function saveJobId(id)
+        if not table.find(AllIDs, id) then
+            table.insert(AllIDs, id)
+            if #AllIDs > 10 then
+                table.remove(AllIDs, 1)
+            end
+            pcall(function()
+                writefile(fileName, HttpService:JSONEncode(AllIDs))
+            end)
         end
+    end
+
+    -- Lấy danh sách server
+    local function ListServers(cursor)
+        task.wait(math.random(2,9))
+        local url = "https://games.roblox.com/v1/games/" .. PlaceID .. "/servers/Public?sortOrder=Asc&limit=100"
+        if cursor then url = url .. "&cursor=" .. cursor end
         local ok, body = pcall(function() return game:HttpGet(url) end)
         if ok and body then
             local decoded = HttpService:JSONDecode(body)
-            if decoded and decoded.data then
-                return decoded
-            end
+            if decoded and decoded.data then return decoded end
         end
         return {data={}}
     end
 
-    -- Hàm teleport
+    -- Teleport
     local function TPReturner()
-        -- 🔍 check target trong server hiện tại
+        -- 🔍 check target 1 lần đầu
         local found, foundTargets = checkTargets()
         if found then
-            sendWebhook(foundTargets)
-            print("🎯 Target(s):", table.concat(foundTargets, ", "), " -> hop tiếp...")
+            print("🔍 Target phát hiện, chờ 4s để xác nhận...")
+            task.wait(4)
+            local stillFound, stillTargets = checkTargets()
+            if stillFound then
+                sendWebhook(stillTargets)
+                print("🎯 Xác nhận còn target sau 4s → gửi webhook!")
+            else
+                print("❌ Target biến mất sau 4s → bỏ qua, hop tiếp.")
+            end
         end
 
+        -- 📜 Server hop
         local servers = ListServers(foundAnything)
         if servers.nextPageCursor then
             foundAnything = servers.nextPageCursor
@@ -129,16 +151,8 @@ pcall(function()
         for _, v in ipairs(servers.data) do
             local id = tostring(v.id)
             if v.playing < v.maxPlayers and id ~= game.JobId then
-                -- Reset mỗi giờ
-                if AllIDs[1] ~= actualHour then
-                    AllIDs = {actualHour}
-                end
-
                 if not table.find(AllIDs, id) then
-                    table.insert(AllIDs, id)
-                    pcall(function()
-                        writefile(fileName, HttpService:JSONEncode(AllIDs))
-                    end)
+                    saveJobId(id)
                     print("🔄 Teleporting tới server:", id, " | " .. v.playing .. "/" .. v.maxPlayers)
                     TeleportService:TeleportToPlaceInstance(PlaceID, id, Players.LocalPlayer)
                     task.wait(0.5)
@@ -147,8 +161,8 @@ pcall(function()
         end
     end
 
-    -- 🔁 vòng lặp server hop (0.7s mỗi lần)
-    while task.wait(0.7) do
+    -- 🔁 vòng lặp server hop
+    while task.wait(0.75) do
         pcall(TPReturner)
     end
 end)

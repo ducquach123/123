@@ -160,7 +160,7 @@ pcall(function()
     end
 
     -- 🔁 vòng lặp server hop
-    while task.wait(0.75) do
+    while task.wait(1.15) do
         pcall(TPReturner)
     end
 end)

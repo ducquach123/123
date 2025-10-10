@@ -143,7 +143,7 @@ pcall(function()
                 saveJobId(id)
                 print("🔄 Teleporting tới server:", id, " | " .. v.playing .. "/" .. v.maxPlayers)
                 TeleportService:TeleportToPlaceInstance(PlaceID, id, Players.LocalPlayer)
-                task.wait(2.6)
+                task.wait(3.5)
             end
         end
     end

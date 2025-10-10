@@ -1,7 +1,7 @@
 repeat task.wait() until game:IsLoaded()
 task.wait(2)
 
--- 🎯 Danh sách target (LocalizedText)
+-- 🎯 Danh sách target
 local targets = {
     "Strawberry Elephant","Graipuss Medussi","To to to Sahur","Pot Hotspot","Chicleteira Bicicleteira",
     "Los Chicleteiras","La Grande Combinasion","Nuclearo Dinossauro","Esok Sekolah","Ketupat Kepat",
@@ -16,16 +16,7 @@ local targets = {
 local HttpService = game:GetService("HttpService")
 local url = "https://discord.com/api/webhooks/1422467802744356955/MtviPDZEJ2mnRUkErjusdNheW3exDBVGPCg-1AXvmHjnai17llKqA1NMTeKwetjSp05k"
 
--- 📜 Join Script + Link
-local function getJoinScript()
-    return 'game:GetService("TeleportService"):TeleportToPlaceInstance(' .. game.PlaceId .. ', "' .. game.JobId .. '", game.Players.LocalPlayer)'
-end
-
-local function getJoinLink()
-    return "https://chillihub1.github.io/chillihub-joiner/?placeId=" .. game.PlaceId .. "&gameInstanceId=" .. game.JobId
-end
-
--- 🔍 Check target
+-- 🔍 Check target trong DisplayName.LocalizedText
 local function checkTargets()
     local foundTargets = {}
     for _, obj in ipairs(workspace:GetDescendants()) do
@@ -46,6 +37,11 @@ end
 -- 📤 Gửi webhook
 local function sendWebhook(foundTargets)
     local Players = game:GetService("Players")
+    local placeId = game.PlaceId
+    local jobId = game.JobId
+    local joinScript = "game:GetService('TeleportService'):TeleportToPlaceInstance(" .. placeId .. ", '" .. jobId .. "', game.Players.LocalPlayer)"
+    local joinLink = "https://chillihub1.github.io/chillihub-joiner/?placeId=" .. placeId .. "&gameInstanceId=" .. jobId
+
     local payload = {
         ["embeds"] = { {
             ["title"] = "🎯 Target Detected!",
@@ -53,12 +49,13 @@ local function sendWebhook(foundTargets)
             ["color"] = 0x00FF00,
             ["fields"] = {
                 {["name"] = "👥 Players", ["value"] = tostring(#Players:GetPlayers()) .. " / " .. tostring(Players.MaxPlayers), ["inline"] = true},
-                {["name"] = "🌐 Join Link", ["value"] = "[Click to Join](" .. getJoinLink() .. ")", ["inline"] = false},
-                {["name"] = "📜 Join Script", ["value"] = "```lua\n" .. getJoinScript() .. "\n```", ["inline"] = false}
+                {["name"] = "🆔 JobId", ["value"] = "`" .. jobId .. "`", ["inline"] = false},
+                {["name"] = "🌐 Join Link", ["value"] = "[Join Server](" .. joinLink .. ")", ["inline"] = false},
+                {["name"] = "📜 Join Script", ["value"] = "```lua\n" .. joinScript .. "\n```", ["inline"] = false}
             },
             ["footer"] = {["text"] = "Spyder Scanner | User: " .. game.Players.LocalPlayer.Name},
             ["timestamp"] = DateTime.now():ToIsoDate()
-        }},
+        }} ,
         ["username"] = "Spyder Scanner"
     }
 
@@ -77,15 +74,15 @@ end
 pcall(function()
     local TeleportService = game:GetService("TeleportService")
     local Players = game:GetService("Players")
-
     local PlaceID = game.PlaceId
     local foundAnything = ""
     local AllIDs = {}
 
-    -- 📂 File chung
-    local fileName = "AllServers.json"
+    -- 📂 File riêng cho từng acc
+    local playerName = game.Players.LocalPlayer.Name
+    local fileName = playerName .. "_Servers.json"
 
-    -- Đọc file
+    -- Đọc file riêng
     local success, result = pcall(function()
         return HttpService:JSONDecode(readfile(fileName))
     end)
@@ -98,7 +95,7 @@ pcall(function()
         end)
     end
 
-    -- Lưu JobId mới (tối đa 10)
+    -- 💾 Lưu JobId (tối đa 10)
     local function saveJobId(id)
         if not table.find(AllIDs, id) then
             table.insert(AllIDs, id)
@@ -111,36 +108,30 @@ pcall(function()
         end
     end
 
-    -- Lấy danh sách server
+    -- 📜 Lấy danh sách server
     local function ListServers(cursor)
         task.wait(math.random(2,9))
         local url = "https://games.roblox.com/v1/games/" .. PlaceID .. "/servers/Public?sortOrder=Asc&limit=100"
-        if cursor then url = url .. "&cursor=" .. cursor end
+        if cursor then
+            url = url .. "&cursor=" .. cursor
+        end
         local ok, body = pcall(function() return game:HttpGet(url) end)
         if ok and body then
             local decoded = HttpService:JSONDecode(body)
-            if decoded and decoded.data then return decoded end
+            if decoded and decoded.data then
+                return decoded
+            end
         end
         return {data={}}
     end
 
-    -- Teleport
+    -- ⚙️ Xử lý hop
     local function TPReturner()
-        -- 🔍 check target 1 lần đầu
         local found, foundTargets = checkTargets()
         if found then
-            print("🔍 Target phát hiện, chờ 4s để xác nhận...")
-            task.wait(4)
-            local stillFound, stillTargets = checkTargets()
-            if stillFound then
-                sendWebhook(stillTargets)
-                print("🎯 Xác nhận còn target sau 4s → gửi webhook!")
-            else
-                print("❌ Target biến mất sau 4s → bỏ qua, hop tiếp.")
-            end
+            sendWebhook(foundTargets)
         end
 
-        -- 📜 Server hop
         local servers = ListServers(foundAnything)
         if servers.nextPageCursor then
             foundAnything = servers.nextPageCursor
@@ -148,19 +139,16 @@ pcall(function()
 
         for _, v in ipairs(servers.data) do
             local id = tostring(v.id)
-            if v.playing < v.maxPlayers and id ~= game.JobId then
-                if not table.find(AllIDs, id) then
-                    saveJobId(id)
-                    print("🔄 Teleporting tới server:", id, " | " .. v.playing .. "/" .. v.maxPlayers)
-                    TeleportService:TeleportToPlaceInstance(PlaceID, id, Players.LocalPlayer)
-                    task.wait(0.5)
-                end
+            if v.playing < v.maxPlayers and id ~= game.JobId and not table.find(AllIDs, id) then
+                saveJobId(id)
+                print("🔄 Teleporting tới server:", id, " | " .. v.playing .. "/" .. v.maxPlayers)
+                TeleportService:TeleportToPlaceInstance(PlaceID, id, Players.LocalPlayer)
+                task.wait(1)
             end
         end
     end
 
-    -- 🔁 vòng lặp server hop
-    while task.wait(1.2115) do
+    while task.wait(1) do
         pcall(TPReturner)
     end
 end)

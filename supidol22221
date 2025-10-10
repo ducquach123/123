@@ -148,7 +148,7 @@ pcall(function()
         end
     end
 
-    while task.wait(3) do
+    while task.wait(4) do
         pcall(TPReturner)
     end
 end)

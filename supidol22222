@@ -1,5 +1,162 @@
 repeat task.wait() until game:IsLoaded()
+
+-- ============[ TỐI ƯU ĐỒ HỌA - ƯU TIÊN CAO ]============
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
+
+print("🎨 Bắt đầu tối ưu đồ họa...")
+
+-- Giảm quality xuống thấp nhất
+pcall(function()
+    local rs = settings():GetService("RenderSettings")
+    if rs then
+        rs.QualityLevel = Enum.QualityLevel.Level01
+    end
+end)
+
+-- Tắt các hiệu ứng Lighting
+pcall(function()
+    Lighting.GlobalShadows = false
+    Lighting.EnvironmentDiffuseScale = 0
+    Lighting.EnvironmentSpecularScale = 0
+    Lighting.FogEnd = 1000
+    Lighting.Brightness = 1
+    Lighting.ClockTime = 12
+    Lighting.ShadowSoftness = 0
+    
+    -- Tắt các effect
+    for _, v in ipairs(Lighting:GetChildren()) do
+        if v:IsA("BloomEffect") or v:IsA("SunRaysEffect") or v:IsA("DepthOfFieldEffect")
+            or v:IsA("BlurEffect") or v:IsA("ColorCorrectionEffect") then
+            pcall(function() v.Enabled = false end)
+        end
+    end
+    
+    -- Tạo stub effects nếu cần
+    local function ensureEffect(cls, name)
+        local eff = Lighting:FindFirstChild(name)
+        if not eff then
+            local bycls = Lighting:FindFirstChildOfClass(cls)
+            if bycls then
+                eff = bycls
+                eff.Name = name
+            else
+                eff = Instance.new(cls)
+                eff.Name = name
+                eff.Parent = Lighting
+            end
+        end
+        pcall(function() eff.Enabled = false end)
+    end
+    
+    ensureEffect("SunRaysEffect", "SunRays")
+    ensureEffect("BloomEffect", "Bloom")
+    ensureEffect("DepthOfFieldEffect", "DepthOfField")
+    ensureEffect("BlurEffect", "Blur")
+    ensureEffect("ColorCorrectionEffect", "ColorCorrection")
+end)
+
+-- Tối ưu Terrain và Workspace
+pcall(function()
+    local Terrain = workspace:FindFirstChildOfClass("Terrain")
+    if Terrain then
+        Terrain.WaterWaveSize = 0
+        Terrain.WaterWaveSpeed = 0
+        Terrain.WaterReflectance = 0
+        Terrain.WaterTransparency = 1
+    end
+    workspace.StreamingEnabled = true
+    workspace.LevelOfDetail = Enum.ModelLevelOfDetail.Disabled
+end)
+
+-- Tối ưu tất cả parts trong workspace (chạy ngay lập tức)
+local ok, descs = pcall(workspace.GetDescendants, workspace)
+if ok and type(descs) == "table" then
+    for _, inst in ipairs(descs) do
+        if inst:IsA("BasePart") then
+            pcall(function()
+                inst.Material = Enum.Material.SmoothPlastic
+                inst.CastShadow = false
+                inst.Reflectance = 0
+            end)
+        elseif inst:IsA("ParticleEmitter") or inst:IsA("Trail")
+            or inst:IsA("Fire") or inst:IsA("Smoke") or inst:IsA("Sparkles") then
+            pcall(function() inst.Enabled = false end)
+        elseif inst:IsA("Decal") or inst:IsA("Texture") then
+            pcall(function()
+                inst.Transparency = 1
+                inst.ZIndex = 0
+            end)
+        elseif inst:IsA("SurfaceAppearance") then
+            pcall(function() inst:Destroy() end)
+        end
+    end
+end
+
+print("✅ Đã tối ưu đồ họa xong!")
+
+-- ============[ LỚP PHỦ MÀN HÌNH TRẮNG ]============
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local LP = Players.LocalPlayer
+
+local WHITE_ON_START = true
+local TOGGLE_KEY = Enum.KeyCode.P
+local WhiteGui, WhiteFrame, WhiteOn = nil, nil, false
+
+local function ensureWhite()
+    if WhiteGui and WhiteGui.Parent then return end
+    
+    local pg = nil
+    local ok = pcall(function()
+        pg = LP and LP:WaitForChild("PlayerGui", 10)
+    end)
+    if not ok or not pg then
+        warn("[WhiteScreen] PlayerGui not found")
+        return
+    end
+    
+    WhiteGui = Instance.new("ScreenGui")
+    WhiteGui.Name = "WhiteOverlay"
+    WhiteGui.ResetOnSpawn = false
+    WhiteGui.IgnoreGuiInset = true
+    WhiteGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    WhiteGui.Parent = pg
+    
+    WhiteFrame = Instance.new("Frame")
+    WhiteFrame.Size = UDim2.fromScale(1, 1)
+    WhiteFrame.BackgroundColor3 = Color3.new(1, 1, 1)
+    WhiteFrame.BorderSizePixel = 0
+    WhiteFrame.Visible = false
+    WhiteFrame.Parent = WhiteGui
+end
+
+local function setWhite(b)
+    if not (WhiteGui and WhiteGui.Parent) then ensureWhite() end
+    if not (WhiteGui and WhiteGui.Parent) then return end
+    WhiteOn = b and true or false
+    if WhiteFrame then WhiteFrame.Visible = WhiteOn end
+    print(WhiteOn and "⬜ White screen: ON" or "⬛ White screen: OFF")
+end
+
+-- Toggle bằng phím P
+pcall(function()
+    UIS.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
+        if input.KeyCode == TOGGLE_KEY then
+            setWhite(not WhiteOn)
+        end
+    end)
+end)
+
+if WHITE_ON_START then
+    setWhite(true)
+end
+
+-- Delay 2s sau khi hoàn thành tối ưu
 task.wait(2)
+
+-- ============[ SCRIPT GỐC ]============
 
 -- 🎯 Danh sách target
 local targets = {
@@ -15,7 +172,6 @@ local targets = {
 -- 🌐 Webhook
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
-local Players = game:GetService("Players")
 local url = "https://discord.com/api/webhooks/1422467802744356955/MtviPDZEJ2mnRUkErjusdNheW3exDBVGPCg-1AXvmHjnai17llKqA1NMTeKwetjSp05k"
 
 -- 🔍 Check target
@@ -41,7 +197,7 @@ local lastJobIdSent = nil
 local function sendWebhook(foundTargets)
     local placeId = game.PlaceId
     local jobId = game.JobId
-    if jobId == lastJobIdSent then return end -- tránh gửi trùng server
+    if jobId == lastJobIdSent then return end
     lastJobIdSent = jobId
 
     local joinScript = "game:GetService('TeleportService'):TeleportToPlaceInstance(" .. placeId .. ", '" .. jobId .. "', game.Players.LocalPlayer)"

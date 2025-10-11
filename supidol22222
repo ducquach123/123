@@ -164,7 +164,7 @@ pcall(function()
                     print("⚠️ Đã join 100 server không thấy target → teleport random")
                     isTeleporting = true
                     TeleportService:Teleport(PlaceID, Players.LocalPlayer)
-                    task.wait(6)
+                    task.wait(8)
                     isTeleporting = false
                     joinedCount = 0
                 end

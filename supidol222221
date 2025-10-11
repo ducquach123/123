@@ -174,16 +174,42 @@ local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local url = "https://discord.com/api/webhooks/1422467802744356955/MtviPDZEJ2mnRUkErjusdNheW3exDBVGPCg-1AXvmHjnai17llKqA1NMTeKwetjSp05k"
 
--- 🔍 Check target
+-- 🔍 Check target với Stolen và CRAFTING filter
 local function checkTargets()
     local foundTargets = {}
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("TextLabel") and obj.Name == "DisplayName" then
             local txt = string.lower(obj.LocalizedText or "")
+            
+            -- Bỏ qua nếu là CRAFTING
+            if string.upper(obj.LocalizedText or "") == "CRAFTING" then
+                continue
+            end
+            
             for _, name in ipairs(targets) do
                 if string.find(txt, string.lower(name)) then
                     if not table.find(foundTargets, name) then
-                        table.insert(foundTargets, name)
+                        -- Tìm Stolen trong cùng thư mục với DisplayName
+                        local parent = obj.Parent
+                        local isStolen = false
+                        
+                        if parent then
+                            local stolenLabel = parent:FindFirstChild("Stolen")
+                            if stolenLabel and stolenLabel:IsA("TextLabel") then
+                                local stolenText = string.upper(stolenLabel.LocalizedText or "")
+                                if stolenText == "CRAFTING" then
+                                    isStolen = true
+                                end
+                            end
+                        end
+                        
+                        -- Chỉ thêm vào list nếu KHÔNG bị stolen (không có CRAFTING)
+                        if not isStolen then
+                            table.insert(foundTargets, name)
+                            print("✅ Found valid target:", name)
+                        else
+                            print("⚠️ Skipped (CRAFTING):", name)
+                        end
                     end
                 end
             end

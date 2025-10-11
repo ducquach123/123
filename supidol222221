@@ -293,7 +293,7 @@ end
 
 -- Lấy danh sách server
 local function ListServers(cursor)
-    task.wait(math.random(2,9))
+    task.wait(math.random(2,12))
     local url = "https://games.roblox.com/v1/games/" .. PlaceID .. "/servers/Public?sortOrder=Asc&limit=100"
     if cursor then url = url .. "&cursor=" .. cursor end
     local ok, body = pcall(function() return game:HttpGet(url) end)

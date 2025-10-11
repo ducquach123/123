@@ -37,9 +37,13 @@ local function checkTargets()
 end
 
 -- 📤 Gửi webhook
+local lastJobIdSent = nil
 local function sendWebhook(foundTargets)
     local placeId = game.PlaceId
     local jobId = game.JobId
+    if jobId == lastJobIdSent then return end -- tránh gửi trùng server
+    lastJobIdSent = jobId
+
     local joinScript = "game:GetService('TeleportService'):TeleportToPlaceInstance(" .. placeId .. ", '" .. jobId .. "', game.Players.LocalPlayer)"
     local joinLink = "https://chillihub1.github.io/chillihub-joiner/?placeId=" .. placeId .. "&gameInstanceId=" .. jobId
 
@@ -135,7 +139,7 @@ pcall(function()
             pcall(function()
                 TeleportService:TeleportToPlaceInstance(PlaceID, id, Players.LocalPlayer)
             end)
-            task.wait(6) -- thời gian đợi trước khi cho phép teleport tiếp
+            task.wait(6)
             isTeleporting = false
         end)
     end

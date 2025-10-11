@@ -216,8 +216,7 @@ local function sendWebhook(foundTargets)
             },
             ["footer"] = {["text"] = "Spyder Scanner | User: " .. Players.LocalPlayer.Name},
             ["timestamp"] = DateTime.now():ToIsoDate()
-        }},
-        ["username"] = "Spyder Scanner"
+        }}
     }
 
     pcall(function()
@@ -314,7 +313,7 @@ local function SafeTeleport(id)
     isTeleporting = true
     lastTeleportTime = tick()
     saveJobId(id)
-    joinedCount += 1
+    joinedCount = joinedCount + 1
     print("🔄 Teleporting tới server:", id, "| Join thứ:", joinedCount)
     
     local success = pcall(function()
@@ -328,7 +327,7 @@ local function SafeTeleport(id)
     end
 end
 
--- Hàm hop chính (GIỮ NGUYÊN logic gốc)
+-- Hàm hop chính
 local function TPReturner()
     if isTeleporting then return end
     
@@ -369,4 +368,3 @@ while task.wait(0.3) do
         pcall(TPReturner)
     end
 end
-end)

@@ -174,32 +174,21 @@ local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local url = "https://discord.com/api/webhooks/1422467802744356955/MtviPDZEJ2mnRUkErjusdNheW3exDBVGPCg-1AXvmHjnai17llKqA1NMTeKwetjSp05k"
 
--- 🔍 Check target (quét hết toàn bộ workspace)
+-- 🔍 Check target
 local function checkTargets()
     local foundTargets = {}
-    local targetSet = {} -- Dùng để check nhanh
-    
-    -- Convert targets sang lowercase và lưu vào set
-    for _, name in ipairs(targets) do
-        targetSet[string.lower(name)] = name
-    end
-    
-    -- Quét hết workspace
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("TextLabel") and obj.Name == "DisplayName" then
             local txt = string.lower(obj.LocalizedText or "")
-            
-            -- Check từng target
-            for targetLower, targetOriginal in pairs(targetSet) do
-                if string.find(txt, targetLower, 1, true) then
-                    if not table.find(foundTargets, targetOriginal) then
-                        table.insert(foundTargets, targetOriginal)
+            for _, name in ipairs(targets) do
+                if string.find(txt, string.lower(name)) then
+                    if not table.find(foundTargets, name) then
+                        table.insert(foundTargets, name)
                     end
                 end
             end
         end
     end
-    
     return #foundTargets > 0, foundTargets
 end
 
@@ -279,7 +268,7 @@ end
 
 -- Lấy danh sách server
 local function ListServers(cursor)
-    task.wait(math.random(2,9)
+    task.wait(math.random(2,9))
     local url = "https://games.roblox.com/v1/games/" .. PlaceID .. "/servers/Public?sortOrder=Asc&limit=100"
     if cursor then url = url .. "&cursor=" .. cursor end
     local ok, body = pcall(function() return game:HttpGet(url) end)
@@ -339,7 +328,7 @@ local function SafeTeleport(id)
     end
 end
 
--- Hàm hop chính
+-- Hàm hop chính (GIỮ NGUYÊN logic gốc)
 local function TPReturner()
     if isTeleporting then return end
     
@@ -380,3 +369,4 @@ while task.wait(0.3) do
         pcall(TPReturner)
     end
 end
+end)

@@ -394,7 +394,7 @@ local function checkTargets()
             local txt = string.lower(obj.LocalizedText or '')
 
             -- Bỏ qua nếu là CRAFTING
-            if string.upper(obj.LocalizedText or '') == 'CRAFTING' then
+            if string.upper(obj.LocalizedText or '') == 'FUSING' then
                 continue
             end
 
@@ -411,18 +411,18 @@ local function checkTargets()
                                 local stolenText = string.upper(
                                     stolenLabel.LocalizedText or ''
                                 )
-                                if stolenText == 'CRAFTING' then
+                                if stolenText == 'FUSING' then
                                     isStolen = true
                                 end
                             end
                         end
 
-                        -- Chỉ thêm vào list nếu KHÔNG bị stolen (không có CRAFTING)
+                        -- Chỉ thêm vào list nếu KHÔNG bị stolen (không có FUSING)
                         if not isStolen then
                             table.insert(foundTargets, name)
                             print('✅ Found valid target:', name)
                         else
-                            print('⚠️ Skipped (CRAFTING):', name)
+                            print('⚠️ Skipped (FUSING):', name)
                         end
                     end
                 end

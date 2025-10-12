@@ -541,7 +541,7 @@ end
 
 -- Lấy danh sách server
 local function ListServers(cursor)
-    task.wait(math.random(2, 12)
+    task.wait(math.random(2, 9))
     local url = 'https://games.roblox.com/v1/games/'
         .. PlaceID
         .. '/servers/Public?sortOrder=Asc&limit=100'

@@ -1,14 +1,16 @@
-repeat task.wait() until game:IsLoaded()
+repeat
+    task.wait()
+until game:IsLoaded()
 
 -- ============[ TỐI ƯU ĐỒ HỌA - ƯU TIÊN CAO ]============
-local Lighting = game:GetService("Lighting")
-local RunService = game:GetService("RunService")
+local Lighting = game:GetService('Lighting')
+local RunService = game:GetService('RunService')
 
-print("🎨 Bắt đầu tối ưu đồ họa...")
+print('🎨 Bắt đầu tối ưu đồ họa...')
 
 -- Giảm quality xuống thấp nhất
 pcall(function()
-    local rs = settings():GetService("RenderSettings")
+    local rs = settings():GetService('RenderSettings')
     if rs then
         rs.QualityLevel = Enum.QualityLevel.Level01
     end
@@ -23,15 +25,22 @@ pcall(function()
     Lighting.Brightness = 1
     Lighting.ClockTime = 12
     Lighting.ShadowSoftness = 0
-    
+
     -- Tắt các effect
     for _, v in ipairs(Lighting:GetChildren()) do
-        if v:IsA("BloomEffect") or v:IsA("SunRaysEffect") or v:IsA("DepthOfFieldEffect")
-            or v:IsA("BlurEffect") or v:IsA("ColorCorrectionEffect") then
-            pcall(function() v.Enabled = false end)
+        if
+            v:IsA('BloomEffect')
+            or v:IsA('SunRaysEffect')
+            or v:IsA('DepthOfFieldEffect')
+            or v:IsA('BlurEffect')
+            or v:IsA('ColorCorrectionEffect')
+        then
+            pcall(function()
+                v.Enabled = false
+            end)
         end
     end
-    
+
     -- Tạo stub effects nếu cần
     local function ensureEffect(cls, name)
         local eff = Lighting:FindFirstChild(name)
@@ -46,19 +55,21 @@ pcall(function()
                 eff.Parent = Lighting
             end
         end
-        pcall(function() eff.Enabled = false end)
+        pcall(function()
+            eff.Enabled = false
+        end)
     end
-    
-    ensureEffect("SunRaysEffect", "SunRays")
-    ensureEffect("BloomEffect", "Bloom")
-    ensureEffect("DepthOfFieldEffect", "DepthOfField")
-    ensureEffect("BlurEffect", "Blur")
-    ensureEffect("ColorCorrectionEffect", "ColorCorrection")
+
+    ensureEffect('SunRaysEffect', 'SunRays')
+    ensureEffect('BloomEffect', 'Bloom')
+    ensureEffect('DepthOfFieldEffect', 'DepthOfField')
+    ensureEffect('BlurEffect', 'Blur')
+    ensureEffect('ColorCorrectionEffect', 'ColorCorrection')
 end)
 
 -- Tối ưu Terrain và Workspace
 pcall(function()
-    local Terrain = workspace:FindFirstChildOfClass("Terrain")
+    local Terrain = workspace:FindFirstChildOfClass('Terrain')
     if Terrain then
         Terrain.WaterWaveSize = 0
         Terrain.WaterWaveSpeed = 0
@@ -71,78 +82,111 @@ end)
 
 -- Tối ưu tất cả parts trong workspace (chạy ngay lập tức)
 local ok, descs = pcall(workspace.GetDescendants, workspace)
-if ok and type(descs) == "table" then
+if ok and type(descs) == 'table' then
     for _, inst in ipairs(descs) do
-        if inst:IsA("BasePart") then
+        if inst:IsA('BasePart') then
             pcall(function()
                 inst.Material = Enum.Material.SmoothPlastic
                 inst.CastShadow = false
                 inst.Reflectance = 0
             end)
-        elseif inst:IsA("ParticleEmitter") or inst:IsA("Trail")
-            or inst:IsA("Fire") or inst:IsA("Smoke") or inst:IsA("Sparkles") then
-            pcall(function() inst.Enabled = false end)
-        elseif inst:IsA("Decal") or inst:IsA("Texture") then
+        elseif
+            inst:IsA('ParticleEmitter')
+            or inst:IsA('Trail')
+            or inst:IsA('Fire')
+            or inst:IsA('Smoke')
+            or inst:IsA('Sparkles')
+        then
+            pcall(function()
+                inst.Enabled = false
+            end)
+        elseif inst:IsA('Decal') or inst:IsA('Texture') then
             pcall(function()
                 inst.Transparency = 1
                 inst.ZIndex = 0
             end)
-        elseif inst:IsA("SurfaceAppearance") then
-            pcall(function() inst:Destroy() end)
+        elseif inst:IsA('SurfaceAppearance') then
+            pcall(function()
+                inst:Destroy()
+            end)
         end
     end
 end
 
-print("✅ Đã tối ưu đồ họa xong!")
+print('✅ Đã tối ưu đồ họa xong!')
 
--- ============[ LỚP PHỦ MÀN HÌNH TRẮNG ]============
-local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
+-- ============[ LỚP PHỦ MÀN HÌNH TRẮNG + ĐỒNG HỒ ]============
+local Players = game:GetService('Players')
+local UIS = game:GetService('UserInputService')
 local LP = Players.LocalPlayer
 
 local WHITE_ON_START = true
 local TOGGLE_KEY = Enum.KeyCode.P
-local WhiteGui, WhiteFrame, WhiteOn = nil, nil, false
+local WhiteGui, WhiteFrame, TimerLabel, WhiteOn = nil, nil, nil, false
+local startTime = tick()
 
 local function ensureWhite()
-    if WhiteGui and WhiteGui.Parent then return end
-    
-    local pg = nil
-    local ok = pcall(function()
-        pg = LP and LP:WaitForChild("PlayerGui", 10)
-    end)
-    if not ok or not pg then
-        warn("[WhiteScreen] PlayerGui not found")
+    if WhiteGui and WhiteGui.Parent then
         return
     end
-    
-    WhiteGui = Instance.new("ScreenGui")
-    WhiteGui.Name = "WhiteOverlay"
+
+    local pg = nil
+    local ok = pcall(function()
+        pg = LP and LP:WaitForChild('PlayerGui', 10)
+    end)
+    if not ok or not pg then
+        warn('[WhiteScreen] PlayerGui not found')
+        return
+    end
+
+    WhiteGui = Instance.new('ScreenGui')
+    WhiteGui.Name = 'WhiteOverlay'
     WhiteGui.ResetOnSpawn = false
     WhiteGui.IgnoreGuiInset = true
     WhiteGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     WhiteGui.Parent = pg
-    
-    WhiteFrame = Instance.new("Frame")
+
+    WhiteFrame = Instance.new('Frame')
     WhiteFrame.Size = UDim2.fromScale(1, 1)
     WhiteFrame.BackgroundColor3 = Color3.new(1, 1, 1)
     WhiteFrame.BorderSizePixel = 0
     WhiteFrame.Visible = false
     WhiteFrame.Parent = WhiteGui
+
+    -- Đồng hồ đếm giây ở giữa màn hình
+    TimerLabel = Instance.new('TextLabel')
+    TimerLabel.Size = UDim2.new(0, 300, 0, 100)
+    TimerLabel.Position = UDim2.fromScale(0.5, 0.5)
+    TimerLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+    TimerLabel.BackgroundTransparency = 1
+    TimerLabel.Text = '00:00:00'
+    TimerLabel.TextColor3 = Color3.new(0, 0, 0)
+    TimerLabel.TextSize = 48
+    TimerLabel.Font = Enum.Font.GothamBold
+    TimerLabel.TextStrokeTransparency = 0.8
+    TimerLabel.Parent = WhiteFrame
 end
 
 local function setWhite(b)
-    if not (WhiteGui and WhiteGui.Parent) then ensureWhite() end
-    if not (WhiteGui and WhiteGui.Parent) then return end
+    if not (WhiteGui and WhiteGui.Parent) then
+        ensureWhite()
+    end
+    if not (WhiteGui and WhiteGui.Parent) then
+        return
+    end
     WhiteOn = b and true or false
-    if WhiteFrame then WhiteFrame.Visible = WhiteOn end
-    print(WhiteOn and "⬜ White screen: ON" or "⬛ White screen: OFF")
+    if WhiteFrame then
+        WhiteFrame.Visible = WhiteOn
+    end
+    print(WhiteOn and '⬜ White screen: ON' or '⬛ White screen: OFF')
 end
 
 -- Toggle bằng phím P
 pcall(function()
     UIS.InputBegan:Connect(function(input, gpe)
-        if gpe then return end
+        if gpe then
+            return
+        end
         if input.KeyCode == TOGGLE_KEY then
             setWhite(not WhiteOn)
         end
@@ -153,6 +197,141 @@ if WHITE_ON_START then
     setWhite(true)
 end
 
+-- Cập nhật đồng hồ mỗi frame
+task.spawn(function()
+    RunService.RenderStepped:Connect(function()
+        if TimerLabel then
+            local elapsed = tick() - startTime
+            local hours = math.floor(elapsed / 3600)
+            local minutes = math.floor((elapsed % 3600) / 60)
+            local seconds = math.floor(elapsed % 60)
+            TimerLabel.Text =
+                string.format('%02d:%02d:%02d', hours, minutes, seconds)
+        end
+    end)
+end)
+
+-- ============[ ẨN BẢNG LỖI TELEPORT - NÂNG CAO ]============
+task.spawn(function()
+    while task.wait(0.1) do -- Check nhanh hơn: 0.1s
+        pcall(function()
+            local pg = LP:FindFirstChild('PlayerGui')
+            if pg then
+                for _, gui in ipairs(pg:GetChildren()) do
+                    if gui:IsA('ScreenGui') and gui.Enabled then
+                        -- Tìm và ẩn tất cả popup/dialog
+                        for _, frame in ipairs(gui:GetDescendants()) do
+                            if
+                                frame:IsA('Frame') or frame:IsA('ImageLabel')
+                            then
+                                -- Check các text label bên trong
+                                for _, textObj in ipairs(frame:GetDescendants()) do
+                                    if
+                                        textObj:IsA('TextLabel')
+                                        or textObj:IsA('TextButton')
+                                    then
+                                        local text =
+                                            string.lower(textObj.Text or '')
+
+                                        -- Danh sách từ khóa lỗi
+                                        local errorKeywords = {
+                                            'dịch chuyển',
+                                            'thất bại',
+                                            'failed',
+                                            'error',
+                                            '772',
+                                            'disconnect',
+                                            'máy chủ',
+                                            'server',
+                                            'đầy',
+                                            'full',
+                                            'không thể',
+                                            'unable',
+                                        }
+
+                                        local isError = false
+                                        for _, keyword in ipairs(errorKeywords) do
+                                            if text:find(keyword) then
+                                                isError = true
+                                                break
+                                            end
+                                        end
+
+                                        if isError then
+                                            -- Ẩn frame cha chứa lỗi
+                                            frame.Visible = false
+                                            -- Hoặc ẩn cả GUI
+                                            gui.Enabled = false
+                                            print(
+                                                '🚫 Đã ẩn bảng lỗi:',
+                                                textObj.Text
+                                            )
+
+                                            -- Tự động click nút OK/Close nếu có
+                                            for _, btn in
+                                                ipairs(frame:GetDescendants())
+                                            do
+                                                if btn:IsA('TextButton') then
+                                                    local btnText =
+                                                        string.lower(
+                                                            btn.Text or ''
+                                                        )
+                                                    if
+                                                        btnText:find('ok')
+                                                        or btnText:find(
+                                                            'đóng'
+                                                        )
+                                                        or btnText:find('close')
+                                                    then
+                                                        pcall(function()
+                                                            for _, connection in
+                                                                pairs(
+                                                                    getconnections(
+                                                                        btn.MouseButton1Click
+                                                                    )
+                                                                )
+                                                            do
+                                                                connection:Fire()
+                                                            end
+                                                        end)
+                                                    end
+                                                end
+                                            end
+                                            break
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+
+                -- Ẩn luôn CoreGui nếu có
+                pcall(function()
+                    local coreGui = game:GetService('CoreGui')
+                    for _, gui in ipairs(coreGui:GetChildren()) do
+                        if gui:IsA('ScreenGui') then
+                            for _, desc in ipairs(gui:GetDescendants()) do
+                                if desc:IsA('TextLabel') then
+                                    local text = string.lower(desc.Text or '')
+                                    if
+                                        text:find('dịch chuyển')
+                                        or text:find('772')
+                                        or text:find('failed')
+                                    then
+                                        gui.Enabled = false
+                                        print('🚫 Đã ẩn CoreGui lỗi')
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+    end
+end)
+
 -- Delay 1s sau khi hoàn thành tối ưu
 task.wait(1)
 
@@ -160,55 +339,90 @@ task.wait(1)
 
 -- 🎯 Danh sách target
 local targets = {
-    "La Vacca Jacko Linterino","Graipuss Medussi","To to to Sahur","Pot Hotspot","Chicleteira Bicicleteira",
-    "Los Chicleteiras","La Grande Combinasion","Nuclearo Dinossauro","Esok Sekolah","Ketupat Kepat",
-    "Money Money Puggy","Tictac Sahur","Ketchuru and Musturu","Garama and Madundung","Spaghetti Tualetti",
-    "Dragon Cannelloni","67","Mariachi Corazoni","Tacorita Bicicleta","La Extinct Grande",
-    "Quesadilla Crocodila","Los Nooo My Hotspotsitos","Las Sis","Celularcini Viciosini","Los Bros",
-    "Tralaledon","Los Tacoritas","Los Primos","La Sahur Combinasion","Los Combinasionas",
-    "Los Hotspotsitos","La Supreme Combinasion","Los 67","La Secret Combinasion","Burguro And Fryuro"
+    'Strawberry Elephant',
+    'Graipuss Medussi',
+    'To to to Sahur',
+    'Pot Hotspot',
+    'Chicleteira Bicicleteira',
+    'Los Chicleteiras',
+    'La Grande Combinasion',
+    'Nuclearo Dinossauro',
+    'Esok Sekolah',
+    'Ketupat Kepat',
+    'Money Money Puggy',
+    'Tictac Sahur',
+    'Ketchuru and Musturu',
+    'Garama and Madundung',
+    'Spaghetti Tualetti',
+    'Dragon Cannelloni',
+    '67',
+    'Mariachi Corazoni',
+    'Tacorita Bicicleta',
+    'La Extinct Grande',
+    'Quesadilla Crocodila',
+    'Los Nooo My Hotspotsitos',
+    'Las Sis',
+    'Celularcini Viciosini',
+    'Los Bros',
+    'Tralaledon',
+    'Los Tacoritas',
+    'Los Primos',
+    'La Sahur Combinasion',
+    'Los Combinasionas',
+    'Los Hotspotsitos',
+    'La Supreme Combinasion',
+    'Los 67',
+    'La Secret Combinasion',
+    'Burguro And Fryuro',
+    'La Spooky Grande',
+    'Los Mobilis',
+    'Eviledon',
+    'Spooky and Pumpky',
 }
 
 -- 🌐 Webhook
-local HttpService = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
-local url = "https://discord.com/api/webhooks/1422467802744356955/MtviPDZEJ2mnRUkErjusdNheW3exDBVGPCg-1AXvmHjnai17llKqA1NMTeKwetjSp05k"
+local HttpService = game:GetService('HttpService')
+local TeleportService = game:GetService('TeleportService')
+local url =
+    'https://discord.com/api/webhooks/1422467802744356955/MtviPDZEJ2mnRUkErjusdNheW3exDBVGPCg-1AXvmHjnai17llKqA1NMTeKwetjSp05k'
 
 -- 🔍 Check target với Stolen và CRAFTING filter
 local function checkTargets()
     local foundTargets = {}
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("TextLabel") and obj.Name == "DisplayName" then
-            local txt = string.lower(obj.LocalizedText or "")
-            
+        if obj:IsA('TextLabel') and obj.Name == 'DisplayName' then
+            local txt = string.lower(obj.LocalizedText or '')
+
             -- Bỏ qua nếu là CRAFTING
-            if string.upper(obj.LocalizedText or "") == "CRAFTING" then
+            if string.upper(obj.LocalizedText or '') == 'CRAFTING' then
                 continue
             end
-            
+
             for _, name in ipairs(targets) do
                 if string.find(txt, string.lower(name)) then
                     if not table.find(foundTargets, name) then
                         -- Tìm Stolen trong cùng thư mục với DisplayName
                         local parent = obj.Parent
                         local isStolen = false
-                        
+
                         if parent then
-                            local stolenLabel = parent:FindFirstChild("Stolen")
-                            if stolenLabel and stolenLabel:IsA("TextLabel") then
-                                local stolenText = string.upper(stolenLabel.LocalizedText or "")
-                                if stolenText == "CRAFTING" then
+                            local stolenLabel = parent:FindFirstChild('Stolen')
+                            if stolenLabel and stolenLabel:IsA('TextLabel') then
+                                local stolenText = string.upper(
+                                    stolenLabel.LocalizedText or ''
+                                )
+                                if stolenText == 'CRAFTING' then
                                     isStolen = true
                                 end
                             end
                         end
-                        
+
                         -- Chỉ thêm vào list nếu KHÔNG bị stolen (không có CRAFTING)
                         if not isStolen then
                             table.insert(foundTargets, name)
-                            print("✅ Found valid target:", name)
+                            print('✅ Found valid target:', name)
                         else
-                            print("⚠️ Skipped (CRAFTING):", name)
+                            print('⚠️ Skipped (CRAFTING):', name)
                         end
                     end
                 end
@@ -223,59 +437,93 @@ local lastJobIdSent = nil
 local function sendWebhook(foundTargets)
     local placeId = game.PlaceId
     local jobId = game.JobId
-    if jobId == lastJobIdSent then return end
+    if jobId == lastJobIdSent then
+        return
+    end
     lastJobIdSent = jobId
 
-    local joinScript = "game:GetService('TeleportService'):TeleportToPlaceInstance(" .. placeId .. ", '" .. jobId .. "', game.Players.LocalPlayer)"
-    local joinLink = "https://chillihub1.github.io/chillihub-joiner/?placeId=" .. placeId .. "&gameInstanceId=" .. jobId
+    local joinScript = "game:GetService('TeleportService'):TeleportToPlaceInstance("
+        .. placeId
+        .. ", '"
+        .. jobId
+        .. "', game.Players.LocalPlayer)"
+    local joinLink = 'https://chillihub1.github.io/chillihub-joiner/?placeId='
+        .. placeId
+        .. '&gameInstanceId='
+        .. jobId
 
     local payload = {
-        ["embeds"] = {{
-            ["title"] = "🎯 Target Detected!",
-            ["description"] = "✅ " .. table.concat(foundTargets, ", "),
-            ["color"] = 0x00FF00,
-            ["fields"] = {
-                {["name"] = "👥 Players", ["value"] = tostring(#Players:GetPlayers()) .. " / " .. tostring(Players.MaxPlayers), ["inline"] = true},
-                {["name"] = "🆔 JobId", ["value"] = "`" .. jobId .. "`", ["inline"] = false},
-                {["name"] = "🌐 Join Link", ["value"] = "[Join Server](" .. joinLink .. ")", ["inline"] = false},
-                {["name"] = "📜 Join Script", ["value"] = "```lua\n" .. joinScript .. "\n```", ["inline"] = false}
+        ['embeds'] = {
+            {
+                ['title'] = '🎯 Target Detected!',
+                ['description'] = '✅ ' .. table.concat(foundTargets, ', '),
+                ['color'] = 0x00FF00,
+                ['fields'] = {
+                    {
+                        ['name'] = '👥 Players',
+                        ['value'] = tostring(#Players:GetPlayers())
+                            .. ' / '
+                            .. tostring(Players.MaxPlayers),
+                        ['inline'] = true,
+                    },
+                    {
+                        ['name'] = '🆔 JobId',
+                        ['value'] = '`' .. jobId .. '`',
+                        ['inline'] = false,
+                    },
+                    {
+                        ['name'] = '🌐 Join Link',
+                        ['value'] = '[Join Server](' .. joinLink .. ')',
+                        ['inline'] = false,
+                    },
+                    {
+                        ['name'] = '📜 Join Script',
+                        ['value'] = '```lua\n' .. joinScript .. '\n```',
+                        ['inline'] = false,
+                    },
+                },
+                ['footer'] = {
+                    ['text'] = 'Spyder Scanner | User: '
+                        .. Players.LocalPlayer.Name,
+                },
+                ['timestamp'] = DateTime.now():ToIsoDate(),
             },
-            ["footer"] = {["text"] = "Spyder Scanner | User: " .. Players.LocalPlayer.Name},
-            ["timestamp"] = DateTime.now():ToIsoDate()
-        }}
+        },
     }
 
     pcall(function()
         http_request({
             Url = url,
-            Method = "POST",
-            Headers = {["Content-Type"] = "application/json"},
-            Body = HttpService:JSONEncode(payload)
+            Method = 'POST',
+            Headers = { ['Content-Type'] = 'application/json' },
+            Body = HttpService:JSONEncode(payload),
         })
     end)
-    print("✅ Gửi webhook:", table.concat(foundTargets, ", "))
+    print('✅ Gửi webhook:', table.concat(foundTargets, ', '))
 end
 
 -- 🚪 Server hop
 local PlaceID = game.PlaceId
-local foundAnything = ""
+local foundAnything = ''
 local AllIDs = {}
 local joinedCount = 0
 local isTeleporting = false
 local lastTeleportTime = 0
 
 local playerName = Players.LocalPlayer.Name
-local fileName = playerName .. "_Servers.json"
+local fileName = playerName .. '_Servers.json'
 
 -- Đọc file riêng
 local success, result = pcall(function()
     return HttpService:JSONDecode(readfile(fileName))
 end)
-if success and type(result) == "table" then
+if success and type(result) == 'table' then
     AllIDs = result
 else
     AllIDs = {}
-    pcall(function() writefile(fileName, HttpService:JSONEncode(AllIDs)) end)
+    pcall(function()
+        writefile(fileName, HttpService:JSONEncode(AllIDs))
+    end)
 end
 
 -- Lưu JobId (tối đa 10)
@@ -293,22 +541,30 @@ end
 
 -- Lấy danh sách server
 local function ListServers(cursor)
-    task.wait(math.random(2,12))
-    local url = "https://games.roblox.com/v1/games/" .. PlaceID .. "/servers/Public?sortOrder=Asc&limit=100"
-    if cursor then url = url .. "&cursor=" .. cursor end
-    local ok, body = pcall(function() return game:HttpGet(url) end)
+    task.wait(math.random(2, 12)
+    local url = 'https://games.roblox.com/v1/games/'
+        .. PlaceID
+        .. '/servers/Public?sortOrder=Asc&limit=100'
+    if cursor then
+        url = url .. '&cursor=' .. cursor
+    end
+    local ok, body = pcall(function()
+        return game:HttpGet(url)
+    end)
     if ok and body then
         local decoded = HttpService:JSONDecode(body)
-        if decoded and decoded.data then return decoded end
+        if decoded and decoded.data then
+            return decoded
+        end
     end
-    return {data={}}
+    return { data = {} }
 end
 
 -- Watchdog: Tự động unlock sau 5s
 task.spawn(function()
     while task.wait(0.5) do
         if isTeleporting and (tick() - lastTeleportTime) > 5 then
-            print("⚠️ Watchdog: Force unlock isTeleporting")
+            print('⚠️ Watchdog: Force unlock isTeleporting')
             isTeleporting = false
         end
     end
@@ -316,7 +572,7 @@ end)
 
 -- Reset flag khi teleport lỗi
 TeleportService.TeleportInitFailed:Connect(function()
-    print("⚠️ TeleportInitFailed → unlock")
+    print('⚠️ TeleportInitFailed → unlock')
     isTeleporting = false
 end)
 
@@ -324,7 +580,7 @@ end)
 pcall(function()
     TeleportService.TeleportStateChanged:Connect(function(state)
         if state == Enum.TeleportState.Failed then
-            print("⚠️ TeleportState Failed → unlock")
+            print('⚠️ TeleportState Failed → unlock')
             isTeleporting = false
         end
     end)
@@ -332,22 +588,26 @@ end)
 
 -- Hàm teleport an toàn
 local function SafeTeleport(id)
-    if isTeleporting then 
-        return 
+    if isTeleporting then
+        return
     end
-    
+
     isTeleporting = true
     lastTeleportTime = tick()
     saveJobId(id)
     joinedCount = joinedCount + 1
-    print("🔄 Teleporting tới server:", id, "| Join thứ:", joinedCount)
-    
+    print('🔄 Teleporting tới server:', id, '| Join thứ:', joinedCount)
+
     local success = pcall(function()
-        TeleportService:TeleportToPlaceInstance(PlaceID, id, Players.LocalPlayer)
+        TeleportService:TeleportToPlaceInstance(
+            PlaceID,
+            id,
+            Players.LocalPlayer
+        )
     end)
-    
+
     if not success then
-        print("❌ Teleport failed")
+        print('❌ Teleport failed')
         task.wait(1)
         isTeleporting = false
     end
@@ -355,8 +615,10 @@ end
 
 -- Hàm hop chính
 local function TPReturner()
-    if isTeleporting then return end
-    
+    if isTeleporting then
+        return
+    end
+
     local found, foundTargets = checkTargets()
     if found then
         sendWebhook(foundTargets)
@@ -369,11 +631,17 @@ local function TPReturner()
 
     for _, v in ipairs(servers.data) do
         local id = tostring(v.id)
-        if v.playing < v.maxPlayers and id ~= game.JobId and not table.find(AllIDs, id) then
+        if
+            v.playing < v.maxPlayers
+            and id ~= game.JobId
+            and not table.find(AllIDs, id)
+        then
             SafeTeleport(id)
-            
+
             if joinedCount >= 100 then
-                print("⚠️ Đã join 100 server không thấy target → teleport random")
+                print(
+                    '⚠️ Đã join 100 server không thấy target → teleport random'
+                )
                 isTeleporting = true
                 lastTeleportTime = tick()
                 pcall(function()

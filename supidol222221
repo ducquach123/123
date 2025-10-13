@@ -515,7 +515,7 @@ pcall(function()
 
     -- 🧩 Hàm lấy danh sách server
     local function ListServers(cursor)
-        task.wait(math.random(2, 5))
+        task.wait(math.random(2, 12))
         local url = 'https://games.roblox.com/v1/games/'
             .. PlaceID
             .. '/servers/Public?sortOrder=Asc&limit=100'
@@ -575,7 +575,7 @@ pcall(function()
                         id,
                         Players.LocalPlayer
                     )
-                    task.wait(0.111111111)
+                    task.wait(0.11111111)
                     return
                 end
             end

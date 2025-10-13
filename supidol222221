@@ -235,7 +235,7 @@ task.spawn(function()
 
                                         -- Danh sách từ khóa lỗi
                                         local errorKeywords = {
-                                            '772'
+                                            '772',
                                         }
 
                                         local isError = false
@@ -501,7 +501,7 @@ pcall(function()
     local actualHour = os.date('!*t').hour
 
     -- 📂 File
-    local fileName =  playerName .. '_Servers.json'
+    local fileName = 'ServerED.json'
 
     -- Đọc file lưu server
     local success, result = pcall(function()

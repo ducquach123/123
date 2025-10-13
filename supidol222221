@@ -501,7 +501,7 @@ pcall(function()
     local actualHour = os.date('!*t').hour
 
     -- 📂 File
-    local fileName = 'ServerED.json'
+    local fileName = 'ServerED123123.json'
 
     -- Đọc file lưu server
     local success, result = pcall(function()

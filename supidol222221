@@ -235,18 +235,7 @@ task.spawn(function()
 
                                         -- Danh sách từ khóa lỗi
                                         local errorKeywords = {
-                                            'dịch chuyển',
-                                            'thất bại',
-                                            'failed',
-                                            'error',
-                                            '772',
-                                            'disconnect',
-                                            'máy chủ',
-                                            'server',
-                                            'đầy',
-                                            'full',
-                                            'không thể',
-                                            'unable',
+                                            '772'
                                         }
 
                                         local isError = false
@@ -320,7 +309,6 @@ task.spawn(function()
                                         or text:find('failed')
                                     then
                                         gui.Enabled = false
-                                        print('🚫 Đã ẩn CoreGui lỗi')
                                     end
                                 end
                             end
@@ -502,163 +490,91 @@ local function sendWebhook(foundTargets)
     print('✅ Gửi webhook:', table.concat(foundTargets, ', '))
 end
 
--- 🚪 Server hop
-local PlaceID = game.PlaceId
-local foundAnything = ''
-local AllIDs = {}
-local joinedCount = 0
-local isTeleporting = false
-local lastTeleportTime = 0
+pcall(function()
+    local TeleportService = game:GetService('TeleportService')
+    local HttpService = game:GetService('HttpService')
+    local Players = game:GetService('Players')
 
-local playerName = Players.LocalPlayer.Name
-local fileName = playerName .. '_Servers.json'
+    local PlaceID = game.PlaceId
+    local foundAnything = ''
+    local AllIDs = {}
+    local actualHour = os.date('!*t').hour
 
--- Đọc file riêng
-local success, result = pcall(function()
-    return HttpService:JSONDecode(readfile(fileName))
-end)
-if success and type(result) == 'table' then
-    AllIDs = result
-else
-    AllIDs = {}
-    pcall(function()
-        writefile(fileName, HttpService:JSONEncode(AllIDs))
+    -- 📂 File
+    local fileName = 'ccccccccccccc_'.json'
+
+    -- Đọc file lưu server
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(readfile(fileName))
     end)
-end
-
--- Lưu JobId (tối đa 10)
-local function saveJobId(id)
-    if not table.find(AllIDs, id) then
-        table.insert(AllIDs, id)
-        if #AllIDs > 10 then
-            table.remove(AllIDs, 1)
-        end
+    if success and type(result) == 'table' then
+        AllIDs = result
+    else
+        AllIDs = { actualHour }
         pcall(function()
             writefile(fileName, HttpService:JSONEncode(AllIDs))
         end)
     end
-end
 
--- Lấy danh sách server
-local function ListServers(cursor)
-    task.wait(math.random(2, 9))
-    local url = 'https://games.roblox.com/v1/games/'
-        .. PlaceID
-        .. '/servers/Public?sortOrder=Asc&limit=100'
-    if cursor then
-        url = url .. '&cursor=' .. cursor
-    end
-    local ok, body = pcall(function()
-        return game:HttpGet(url)
-    end)
-    if ok and body then
-        local decoded = HttpService:JSONDecode(body)
-        if decoded and decoded.data then
-            return decoded
+    -- Hàm lấy danh sách server
+    local function ListServers(cursor)
+        task.wait(math.random(1, 12))
+        local url = 'https://games.roblox.com/v1/games/'
+            .. PlaceID
+            .. '/servers/Public?sortOrder=Asc&limit=100'
+        if cursor then
+            url = url .. '&cursor=' .. cursor
         end
-    end
-    return { data = {} }
-end
-
--- Watchdog: Tự động unlock sau 5s
-task.spawn(function()
-    while task.wait(0.5) do
-        if isTeleporting and (tick() - lastTeleportTime) > 5 then
-            print('⚠️ Watchdog: Force unlock isTeleporting')
-            isTeleporting = false
-        end
-    end
-end)
-
--- Reset flag khi teleport lỗi
-TeleportService.TeleportInitFailed:Connect(function()
-    print('⚠️ TeleportInitFailed → unlock')
-    isTeleporting = false
-end)
-
--- Lắng nghe TeleportStateChanged
-pcall(function()
-    TeleportService.TeleportStateChanged:Connect(function(state)
-        if state == Enum.TeleportState.Failed then
-            print('⚠️ TeleportState Failed → unlock')
-            isTeleporting = false
-        end
-    end)
-end)
-
--- Hàm teleport an toàn
-local function SafeTeleport(id)
-    if isTeleporting then
-        return
-    end
-
-    isTeleporting = true
-    lastTeleportTime = tick()
-    saveJobId(id)
-    joinedCount = joinedCount + 1
-    print('🔄 Teleporting tới server:', id, '| Join thứ:', joinedCount)
-
-    local success = pcall(function()
-        TeleportService:TeleportToPlaceInstance(
-            PlaceID,
-            id,
-            Players.LocalPlayer
-        )
-    end)
-
-    if not success then
-        print('❌ Teleport failed')
-        task.wait(1)
-        isTeleporting = false
-    end
-end
-
--- Hàm hop chính
-local function TPReturner()
-    if isTeleporting then
-        return
-    end
-
-    local found, foundTargets = checkTargets()
-    if found then
-        sendWebhook(foundTargets)
-    end
-
-    local servers = ListServers(foundAnything)
-    if servers.nextPageCursor then
-        foundAnything = servers.nextPageCursor
-    end
-
-    for _, v in ipairs(servers.data) do
-        local id = tostring(v.id)
-        if
-            v.playing < v.maxPlayers
-            and id ~= game.JobId
-            and not table.find(AllIDs, id)
-        then
-            SafeTeleport(id)
-
-            if joinedCount >= 100 then
-                print(
-                    '⚠️ Đã join 100 server không thấy target → teleport random'
-                )
-                isTeleporting = true
-                lastTeleportTime = tick()
-                pcall(function()
-                    TeleportService:Teleport(PlaceID, Players.LocalPlayer)
-                end)
-                task.wait(5)
-                isTeleporting = false
-                joinedCount = 0
+        local ok, body = pcall(function()
+            return game:HttpGet(url)
+        end)
+        if ok and body then
+            local decoded = HttpService:JSONDecode(body)
+            if decoded and decoded.data then
+                return decoded
             end
-            break
+        end
+        return { data = {} }
+    end
+
+    -- Hàm teleport
+    local function TPReturner()
+        local servers = ListServers(foundAnything)
+        if servers.nextPageCursor then
+            foundAnything = servers.nextPageCursor
+        end
+
+        for _, v in ipairs(servers.data) do
+            local id = tostring(v.id)
+            if v.playing < v.maxPlayers and id ~= game.JobId then
+                -- Reset mỗi giờ
+                if AllIDs[1] ~= actualHour then
+                    AllIDs = { actualHour }
+                end
+
+                if not table.find(AllIDs, id) then
+                    table.insert(AllIDs, id)
+                    pcall(function()
+                        writefile(fileName, HttpService:JSONEncode(AllIDs))
+                    end)
+                    print(
+                        '🔄 Teleporting tới server:',
+                        id,
+                        ' | ' .. v.playing .. '/' .. v.maxPlayers
+                    )
+                    TeleportService:TeleportToPlaceInstance(
+                        PlaceID,
+                        id,
+                        Players.LocalPlayer
+                    )
+                    task.wait(0.11111111)
+                end
+            end
         end
     end
-end
 
--- Loop chính
-while task.wait(0.3) do
-    if not isTeleporting then
+    -- vòng lặp server hop
+    while task.wait(1) do
         pcall(TPReturner)
     end
-end
+end)

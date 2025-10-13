@@ -304,9 +304,7 @@ task.spawn(function()
                                 if desc:IsA('TextLabel') then
                                     local text = string.lower(desc.Text or '')
                                     if
-                                        text:find('dịch chuyển')
-                                        or text:find('772')
-                                        or text:find('failed')
+                                        text:find('772')
                                     then
                                         gui.Enabled = false
                                     end
@@ -327,7 +325,7 @@ task.wait(1)
 
 -- 🎯 Danh sách target
 local targets = {
-    'Strawberry Elephant',
+    'Ta Ta Ta Ta Sahur',
     'Graipuss Medussi',
     'To to to Sahur',
     'Pot Hotspot',
@@ -500,10 +498,9 @@ pcall(function()
     local AllIDs = {}
     local actualHour = os.date('!*t').hour
 
-    -- 📂 File
-    local fileName = 'ServerED123123.json'
+    -- 📂 File lưu server hop
+    local fileName = 'ServerED.json'
 
-    -- Đọc file lưu server
     local success, result = pcall(function()
         return HttpService:JSONDecode(readfile(fileName))
     end)
@@ -516,9 +513,9 @@ pcall(function()
         end)
     end
 
-    -- Hàm lấy danh sách server
+    -- 🧩 Hàm lấy danh sách server
     local function ListServers(cursor)
-        task.wait(math.random(1, 12))
+        task.wait(math.random(2, 5))
         local url = 'https://games.roblox.com/v1/games/'
             .. PlaceID
             .. '/servers/Public?sortOrder=Asc&limit=100'
@@ -537,8 +534,18 @@ pcall(function()
         return { data = {} }
     end
 
-    -- Hàm teleport
+    -- 🕹️ Hàm teleport (gửi webhook nếu thấy target)
     local function TPReturner()
+        -- 🔍 Kiểm tra target trong server hiện tại
+        local ok, foundTargets = checkTargets()
+        if ok and #foundTargets > 0 then
+            print(
+                '🎯 Phát hiện target -> gửi webhook và tiếp tục hop...'
+            )
+            sendWebhook(foundTargets)
+        end
+
+        -- 🌀 Tiếp tục tìm server mới
         local servers = ListServers(foundAnything)
         if servers.nextPageCursor then
             foundAnything = servers.nextPageCursor
@@ -557,6 +564,7 @@ pcall(function()
                     pcall(function()
                         writefile(fileName, HttpService:JSONEncode(AllIDs))
                     end)
+
                     print(
                         '🔄 Teleporting tới server:',
                         id,
@@ -567,13 +575,14 @@ pcall(function()
                         id,
                         Players.LocalPlayer
                     )
-                    task.wait(0.11111111)
+                    task.wait(0.111111111)
+                    return
                 end
             end
         end
     end
 
-    -- vòng lặp server hop
+    -- 🌀 Vòng lặp server hop liên tục
     while task.wait(1) do
         pcall(TPReturner)
     end

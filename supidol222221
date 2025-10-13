@@ -325,7 +325,7 @@ task.wait(1)
 
 -- 🎯 Danh sách target
 local targets = {
-    'Ta Ta Ta Ta Sahur',
+    'Strawberry Elephant',
     'Graipuss Medussi',
     'To to to Sahur',
     'Pot Hotspot',

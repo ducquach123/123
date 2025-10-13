@@ -501,7 +501,7 @@ pcall(function()
     local actualHour = os.date('!*t').hour
 
     -- 📂 File
-    local fileName = 'ccccccccccccc_'.json'
+    local fileName =  playerName .. '_Servers.json'
 
     -- Đọc file lưu server
     local success, result = pcall(function()

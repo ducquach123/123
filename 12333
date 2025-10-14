@@ -1,4 +1,4 @@
--- Mini Menu GUI Script (FULL VERSION)
+-- Mini Menu GUI Script (FULL CUSTOM VERSION)
 -- Đặt trong StarterGui hoặc StarterPlayerScripts (LocalScript)
 
 local Players = game:GetService('Players')
@@ -13,7 +13,7 @@ screenGui.Name = 'MiniMenu'
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- 🎛️ Tạo Frame chính
+-- 🎛️ Frame chính
 local mainFrame = Instance.new('Frame')
 mainFrame.Name = 'MainFrame'
 mainFrame.Size = UDim2.new(0, 200, 0, 125)
@@ -22,7 +22,6 @@ mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
 
--- Bo tròn góc
 local corner = Instance.new('UICorner')
 corner.CornerRadius = UDim.new(0, 10)
 corner.Parent = mainFrame
@@ -48,7 +47,7 @@ btnClearAvatar.Name = 'ClearAvatarBtn'
 btnClearAvatar.Size = UDim2.new(1, -20, 0, 35)
 btnClearAvatar.Position = UDim2.new(0, 10, 0, 40)
 btnClearAvatar.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
-btnClearAvatar.Text = 'Xóa Avatar'
+btnClearAvatar.Text = 'Xóa Avatar (Tất cả)'
 btnClearAvatar.TextColor3 = Color3.fromRGB(255, 255, 255)
 btnClearAvatar.Font = Enum.Font.Gotham
 btnClearAvatar.TextSize = 13
@@ -78,107 +77,123 @@ btn2Corner.Parent = btnSpamSlap
 local isSpamming = false
 
 -- 🧹 Hàm xóa avatar
-local function clearAvatar()
-	player:ClearCharacterAppearance()
-	print('✅ Đã xóa avatar!')
+local function clearMyAvatar()
+    player:ClearCharacterAppearance()
+    print('✅ Đã xóa outfit của BẠN!')
 end
 
--- 🚀 TỰ ĐỘNG XÓA AVATAR KHI EXECUTE (bản chắc chắn)
+local function clearAllAvatars()
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr.Character then
+            plr:ClearCharacterAppearance()
+        end
+    end
+    print('✅ Đã xóa outfit của TẤT CẢ người chơi (local only)')
+end
+
+-- 🚀 Khi execute: tự động xóa outfit của chính bạn
 if player.Character then
-	clearAvatar()
+    clearMyAvatar()
 else
-	player.CharacterAdded:Wait()
-	clearAvatar()
+    player.CharacterAdded:Wait()
+    clearMyAvatar()
 end
 
 -- 🔍 Hàm tìm tool Slap
 local function getSlapTool()
-	local backpack = player:WaitForChild('Backpack')
-	for _, item in pairs(backpack:GetChildren()) do
-		if item:IsA('Tool') and string.find(string.lower(item.Name), 'slap') then
-			return item
-		end
-	end
+    local backpack = player:WaitForChild('Backpack')
+    for _, item in pairs(backpack:GetChildren()) do
+        if
+            item:IsA('Tool') and string.find(string.lower(item.Name), 'slap')
+        then
+            return item
+        end
+    end
 
-	local character = player.Character
-	if character then
-		for _, item in pairs(character:GetChildren()) do
-			if item:IsA('Tool') and string.find(string.lower(item.Name), 'slap') then
-				return item
-			end
-		end
-	end
-	return nil
+    local character = player.Character
+    if character then
+        for _, item in pairs(character:GetChildren()) do
+            if
+                item:IsA('Tool')
+                and string.find(string.lower(item.Name), 'slap')
+            then
+                return item
+            end
+        end
+    end
+    return nil
 end
 
 -- 🔁 Hàm spam slap
 local function startSpamSlap()
-	task.spawn(function()
-		while isSpamming do
-			local character = player.Character
-			if character then
-				local humanoid = character:FindFirstChild('Humanoid')
-				local tool = getSlapTool()
+    task.spawn(function()
+        while isSpamming do
+            local character = player.Character
+            if character then
+                local humanoid = character:FindFirstChild('Humanoid')
+                local tool = getSlapTool()
 
-				if humanoid and tool then
-					if tool.Parent == player.Backpack then
-						humanoid:EquipTool(tool)
-					end
-					task.wait(0.1)
-				else
-					task.wait(0.5)
-				end
-			else
-				task.wait(0.5)
-			end
-		end
-	end)
+                if humanoid and tool then
+                    if tool.Parent == player.Backpack then
+                        humanoid:EquipTool(tool)
+                    end
+                    task.wait(0.1)
+                else
+                    task.wait(0.5)
+                end
+            else
+                task.wait(0.5)
+            end
+        end
+    end)
 end
 
 local function stopSpamSlap()
-	isSpamming = false
+    isSpamming = false
 end
 
 -- 🎯 Nút xóa avatar (click)
 btnClearAvatar.MouseButton1Click:Connect(function()
-	clearAvatar()
-	btnClearAvatar.BackgroundColor3 = Color3.fromRGB(100, 220, 100)
-	task.wait(0.2)
-	btnClearAvatar.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+    clearAllAvatars()
+    btnClearAvatar.BackgroundColor3 = Color3.fromRGB(100, 220, 100)
+    task.wait(0.2)
+    btnClearAvatar.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
 end)
 
 -- 🟢 Nút Spam Slap (click toggle)
 btnSpamSlap.MouseButton1Click:Connect(function()
-	isSpamming = not isSpamming
+    isSpamming = not isSpamming
 
-	if isSpamming then
-		btnSpamSlap.Text = 'Spam Slap: ON (R để bật/tắt)'
-		btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 220, 100)
-		startSpamSlap()
-	else
-		btnSpamSlap.Text = 'Spam Slap: OFF (R để bật/tắt)'
-		btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 150, 220)
-		stopSpamSlap()
-	end
+    if isSpamming then
+        btnSpamSlap.Text = 'Spam Slap: ON (R để bật/tắt)'
+        btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 220, 100)
+        startSpamSlap()
+    else
+        btnSpamSlap.Text = 'Spam Slap: OFF (R để bật/tắt)'
+        btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 150, 220)
+        stopSpamSlap()
+    end
 end)
 
 -- ⌨️ Phím R bật/tắt Spam Slap
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
+    if gameProcessed then
+        return
+    end
 
-	if input.KeyCode == Enum.KeyCode.R then
-		isSpamming = not isSpamming
+    if input.KeyCode == Enum.KeyCode.R then
+        isSpamming = not isSpamming
 
-		if isSpamming then
-			btnSpamSlap.Text = 'Spam Slap: ON (R để bật/tắt)'
-			btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 220, 100)
-			startSpamSlap()
-		else
-			btnSpamSlap.Text = 'Spam Slap: OFF (R để bật/tắt)'
-			btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 150, 220)
-			stopSpamSlap()
-		end
-	end
+        if isSpamming then
+            btnSpamSlap.Text = 'Spam Slap: ON (R để bật/tắt)'
+            btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 220, 100)
+            startSpamSlap()
+        else
+            btnSpamSlap.Text = 'Spam Slap: OFF (R để bật/tắt)'
+            btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 150, 220)
+            stopSpamSlap()
+        end
+    end
 end)
 
 print('✅ Mini Menu loaded hoàn tất!')

@@ -1,191 +1,261 @@
-repeat task.wait() until game:IsLoaded()
-task.wait(2)
+-- Mini Menu GUI Script
+-- Đặt trong StarterGui hoặc StarterPlayerScripts (LocalScript)
 
--- 🪄 Danh sách targets (DisplayName)
-local targets = {
-    "Strawberry Elephant",
-    "Graipuss Medussi",
-    "To to to Sahur",
-    "Pot Hotspot",
-    "Chicleteira Bicicleteira",
-    "Los Chicleteiras",
-    "La Grande Combinasion",
-    "Nuclearo Dinossauro",
-    "Esok Sekolah",
-    "Ketupat Kepat",
-    "Money Money Puggy",
-    "Tictac Sahur",
-    "Ketchuru and Musturu",
-    "Garama and Madundung",
-    "Spaghetti Tualetti",
-    "Dragon Cannelloni",
-    "67",
-    "Mariachi Corazoni",
-    "Tacorita Bicicleta",
-    "La Extinct Grande",
-    "Quesadilla Crocodila",
-    "Los Nooo My Hotspotsitos",
-    "Las Sis",
-    "Celularcini Viciosini",
-    "Los Bros",
-    "Tralaledon",
-    "Los Tacoritas",
-    "Los Primos",
-    "La Sahur Combinasion",
-    "Los Combinasionas",
-    "Los Hotspotsitos",
-    "La Supreme Combinasion"
-}
+local Players = game:GetService('Players')
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild('PlayerGui')
 
--- 🌐 Webhook
-local HttpService = game:GetService("HttpService")
-local url = "https://discord.com/api/webhooks/1422467802744356955/MtviPDZEJ2mnRUkErjusdNheW3exDBVGPCg-1AXvmHjnai17llKqA1NMTeKwetjSp05k"
+-- Tạo ScreenGui
+local screenGui = Instance.new('ScreenGui')
+screenGui.Name = 'MiniMenu'
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
 
--- 📦 Join script
-local joinScript = 'game:GetService("TeleportService"):TeleportToPlaceInstance(' ..
-    game.PlaceId .. ', "' .. game.JobId .. '", game.Players.LocalPlayer)'
+-- Tạo Frame chính
+local mainFrame = Instance.new('Frame')
+mainFrame.Name = 'MainFrame'
+mainFrame.Size = UDim2.new(0, 200, 0, 165)
+mainFrame.Position = UDim2.new(0, 10, 1, -175) -- Góc dưới trái
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
 
--- 🔍 Check DisplayName (TextLabel)
-local function checkPlots()
-    local foundList = {}
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("TextLabel") and obj.Name == "DisplayName" then
-            local txt = string.lower(obj.Text or obj.ContentText or "")
-            for _, name in ipairs(targets) do
-                if string.find(txt, string.lower(name)) then
-                    table.insert(foundList, txt)
-                end
+-- Bo tròn góc
+local corner = Instance.new('UICorner')
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = mainFrame
+
+-- Tiêu đề
+local title = Instance.new('TextLabel')
+title.Name = 'Title'
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+title.Text = 'Menu'
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+title.Parent = mainFrame
+
+local titleCorner = Instance.new('UICorner')
+titleCorner.CornerRadius = UDim.new(0, 10)
+titleCorner.Parent = title
+
+-- Nút 1: Xóa Avatar
+local btnClearAvatar = Instance.new('TextButton')
+btnClearAvatar.Name = 'ClearAvatarBtn'
+btnClearAvatar.Size = UDim2.new(1, -20, 0, 35)
+btnClearAvatar.Position = UDim2.new(0, 10, 0, 40)
+btnClearAvatar.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+btnClearAvatar.Text = 'Xóa Avatar'
+btnClearAvatar.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnClearAvatar.Font = Enum.Font.Gotham
+btnClearAvatar.TextSize = 13
+btnClearAvatar.Parent = mainFrame
+
+local btn1Corner = Instance.new('UICorner')
+btn1Corner.CornerRadius = UDim.new(0, 6)
+btn1Corner.Parent = btnClearAvatar
+
+-- Nút 2: Spam Slap
+local btnSpamSlap = Instance.new('TextButton')
+btnSpamSlap.Name = 'SpamSlapBtn'
+btnSpamSlap.Size = UDim2.new(1, -20, 0, 35)
+btnSpamSlap.Position = UDim2.new(0, 10, 0, 80)
+btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 150, 220)
+btnSpamSlap.Text = 'Spam Slap: OFF'
+btnSpamSlap.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnSpamSlap.Font = Enum.Font.Gotham
+btnSpamSlap.TextSize = 13
+btnSpamSlap.Parent = mainFrame
+
+local btn2Corner = Instance.new('UICorner')
+btn2Corner.CornerRadius = UDim.new(0, 6)
+btn2Corner.Parent = btnSpamSlap
+
+-- Nút 3: Nửa Vời
+local btnNuaVoi = Instance.new('TextButton')
+btnNuaVoi.Name = 'NuaVoiBtn'
+btnNuaVoi.Size = UDim2.new(1, -20, 0, 35)
+btnNuaVoi.Position = UDim2.new(0, 10, 0, 120)
+btnNuaVoi.BackgroundColor3 = Color3.fromRGB(150, 50, 220)
+btnNuaVoi.Text = 'Nửa Vời: OFF'
+btnNuaVoi.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnNuaVoi.Font = Enum.Font.Gotham
+btnNuaVoi.TextSize = 13
+btnNuaVoi.Parent = mainFrame
+
+local btn3Corner = Instance.new('UICorner')
+btn3Corner.CornerRadius = UDim.new(0, 6)
+btn3Corner.Parent = btnNuaVoi
+
+-- Biến spam
+local isSpamming = false
+local isNuaVoi = false
+local spamConnection
+
+-- Hàm xóa avatar
+local function clearAvatar()
+    player:ClearCharacterAppearance()
+    print('Đã xóa avatar!')
+end
+
+-- TỰ ĐỘNG XÓA AVATAR KHI EXECUTE
+if player.Character then
+    clearAvatar()
+end
+
+-- Hàm tìm tool Slap
+local function getSlapTool()
+    local backpack = player:WaitForChild('Backpack')
+    for _, item in pairs(backpack:GetChildren()) do
+        if
+            item:IsA('Tool') and string.find(string.lower(item.Name), 'slap')
+        then
+            return item
+        end
+    end
+
+    -- Kiểm tra tool đang cầm
+    local character = player.Character
+    if character then
+        for _, item in pairs(character:GetChildren()) do
+            if
+                item:IsA('Tool')
+                and string.find(string.lower(item.Name), 'slap')
+            then
+                return item
             end
         end
     end
-    return foundList
+    return nil
 end
 
--- 📤 Gửi webhook
-local function sendWebhook(foundList)
-    if #foundList > 0 then
-        local Players = game:GetService("Players")
-        local descriptionText = ""
-        for _, name in ipairs(foundList) do
-            descriptionText = descriptionText .. "✅ " .. name .. "\n"
-        end
+-- Hàm spam slap (cầm liên tục)
+local function startSpamSlap()
+    task.spawn(function()
+        while isSpamming do
+            local character = player.Character
+            if character then
+                local humanoid = character:FindFirstChild('Humanoid')
+                local tool = getSlapTool()
 
-        local payload = {
-            ["embeds"] = { {
-                ["title"] = "🎯 Target Detected!",
-                ["description"] = descriptionText,
-                ["color"] = 0x00FF00,
-                ["fields"] = {
-                    {["name"] = "👥 Players", ["value"] = tostring(#Players:GetPlayers()) .. " / " .. tostring(Players.MaxPlayers), ["inline"] = true},
-                    {["name"] = "🆔 JobId", ["value"] = "`" .. game.JobId .. "`", ["inline"] = false},
-                    {["name"] = "🎮 Game", ["value"] = "**" .. game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name .. "**", ["inline"] = false},
-                    {["name"] = "📜 Join Script", ["value"] = "```lua\n" .. joinScript .. "\n```", ["inline"] = false}
-                },
-                ["footer"] = {["text"] = "Spyder Scanner | User: " .. game.Players.LocalPlayer.Name},
-                ["timestamp"] = DateTime.now():ToIsoDate()
-            }},
-            ["username"] = "Spyder Scanner"
-        }
-
-        pcall(function()
-            http_request({
-                Url = url,
-                Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body = HttpService:JSONEncode(payload)
-            })
-        end)
-        print("✅ Đã gửi webhook")
-    end
-end
-
--- 🚪 Server hop
-pcall(function()
-    local TeleportService = game:GetService("TeleportService")
-    local Players = game:GetService("Players")
-    local PlaceID = game.PlaceId
-    local foundAnything = ""
-    local HttpService = game:GetService("HttpService")
-
-    local actualHour = os.date("!*t").hour
-    local fileName = "NotSameServers_" .. math.random(1,99999) .. ".json"
-    local AllIDs = {actualHour}
-    local hopCount = 0
-
-    local function ListServers(cursor)
-        local url = "https://games.roblox.com/v1/games/" .. PlaceID .. "/servers/Public?sortOrder=Asc&limit=100"
-        if cursor then url = url .. "&cursor=" .. cursor end
-        local ok, body = pcall(function() return game:HttpGet(url) end)
-        if ok and body then
-            local decoded = HttpService:JSONDecode(body)
-            if decoded and decoded.data then return decoded end
-        end
-        return {data={}}
-    end
-
-    local function TPReturner()
-        local servers = ListServers(foundAnything)
-        if servers.nextPageCursor then
-            foundAnything = servers.nextPageCursor
-        else
-            warn("⚠️ Hết API server list → dùng Roblox hop")
-            TeleportService:Teleport(PlaceID, Players.LocalPlayer)
-            return
-        end
-
-        local teleported = false
-        for _, v in ipairs(servers.data) do
-            local id = tostring(v.id)
-            if v.playing < v.maxPlayers and id ~= game.JobId then
-                if AllIDs[1] ~= actualHour then AllIDs = {actualHour} end
-                if not table.find(AllIDs, id) then
-                    table.insert(AllIDs, id)
-                    pcall(function() writefile(fileName, HttpService:JSONEncode(AllIDs)) end)
-                    hopCount += 1
-                    print("🔄 Teleporting tới server:", id, " | " .. v.playing .. "/" .. v.maxPlayers)
-                    TeleportService:TeleportToPlaceInstance(PlaceID, id, Players.LocalPlayer)
-                    teleported = true
-                    task.wait(math.random(70,100)/100) -- 0.7–1s
-                    break
-                end
-            end
-        end
-
-        if not teleported then
-            warn("⚠️ Không có server hợp lệ → fallback Teleport()")
-            TeleportService:Teleport(PlaceID, Players.LocalPlayer)
-        end
-
-        if hopCount >= 100 then
-            warn("⚠️ Hop 100 server không thành công → fallback Roblox hop")
-            TeleportService:Teleport(PlaceID, Players.LocalPlayer)
-        end
-    end
-
-    -- Vòng lặp chính
-    while task.wait(2) do
-        local found = checkPlots()
-        if #found > 0 then
-            print("🎯 Thấy target, ở lại tối đa 6s...")
-            local stayTime, step, elapsed = 6, 2, 0
-            while elapsed < stayTime do
-                local recheck = checkPlots()
-                if #recheck > 0 then
-                    sendWebhook(recheck)
+                if humanoid and tool then
+                    -- Cầm tool lên và giữ liên tục
+                    if tool.Parent == player.Backpack then
+                        humanoid:EquipTool(tool)
+                    end
+                    task.wait(0.1)
                 else
-                    print("❌ Target biến mất -> đổi server ngay")
-                    pcall(TPReturner)
-                    break
+                    task.wait(0.5)
                 end
-                task.wait(step); elapsed = elapsed + step
+            else
+                task.wait(0.5)
             end
-            if elapsed >= stayTime then
-                print("⏰ Hết 6s -> đổi server")
-                pcall(TPReturner)
+        end
+    end)
+end
+
+-- Hàm nửa vời (cầm 1.3s rồi thả)
+local function startNuaVoi()
+    task.spawn(function()
+        while isNuaVoi do
+            local character = player.Character
+            if character then
+                local humanoid = character:FindFirstChild('Humanoid')
+                local tool = getSlapTool()
+
+                if humanoid and tool then
+                    -- Cầm tool lên
+                    if tool.Parent == player.Backpack then
+                        humanoid:EquipTool(tool)
+                    end
+
+                    -- Giữ 1.3s
+                    task.wait(1.3)
+
+                    -- Thả tool xuống
+                    if tool.Parent == character then
+                        humanoid:UnequipTools()
+                    end
+
+                    -- Đợi trước khi lặp lại
+                    task.wait(0.1)
+                else
+                    task.wait(0.5)
+                end
+            else
+                task.wait(0.5)
             end
+        end
+    end)
+end
+
+local function stopSpamSlap()
+    isSpamming = false
+end
+
+local function stopNuaVoi()
+    isNuaVoi = false
+end
+
+-- Sự kiện nút 1: Xóa Avatar
+btnClearAvatar.MouseButton1Click:Connect(function()
+    clearAvatar()
+    btnClearAvatar.BackgroundColor3 = Color3.fromRGB(100, 220, 100)
+    task.wait(0.2)
+    btnClearAvatar.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+end)
+
+-- Sự kiện nút 2: Spam Slap (Toggle)
+btnSpamSlap.MouseButton1Click:Connect(function()
+    isSpamming = not isSpamming
+
+    if isSpamming then
+        btnSpamSlap.Text = 'Spam Slap: ON'
+        btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 220, 100)
+        startSpamSlap()
+    else
+        btnSpamSlap.Text = 'Spam Slap: OFF'
+        btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 150, 220)
+        stopSpamSlap()
+    end
+end)
+
+-- Sự kiện nút 3: Nửa Vời (Toggle)
+btnNuaVoi.MouseButton1Click:Connect(function()
+    isNuaVoi = not isNuaVoi
+
+    if isNuaVoi then
+        btnNuaVoi.Text = 'Nửa Vời: ON'
+        btnNuaVoi.BackgroundColor3 = Color3.fromRGB(220, 50, 220)
+        startNuaVoi()
+    else
+        btnNuaVoi.Text = 'Nửa Vời: OFF'
+        btnNuaVoi.BackgroundColor3 = Color3.fromRGB(150, 50, 220)
+        stopNuaVoi()
+    end
+end)
+
+-- Sự kiện phím R: Toggle Nửa Vời
+local UserInputService = game:GetService('UserInputService')
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then
+        return
+    end
+
+    if input.KeyCode == Enum.KeyCode.R then
+        isNuaVoi = not isNuaVoi
+
+        if isNuaVoi then
+            btnNuaVoi.Text = 'Nửa Vời: ON'
+            btnNuaVoi.BackgroundColor3 = Color3.fromRGB(220, 50, 220)
+            startNuaVoi()
         else
-            print("❌ Không thấy target -> đổi server ngay")
-            pcall(TPReturner)
+            btnNuaVoi.Text = 'Nửa Vời: OFF'
+            btnNuaVoi.BackgroundColor3 = Color3.fromRGB(150, 50, 220)
+            stopNuaVoi()
         end
     end
 end)
+
+print('Mini Menu loaded!')

@@ -525,7 +525,7 @@ end
 
 -- Lấy danh sách server
 local function ListServers(cursor)
-    task.wait(math.random(2, 9))
+    task.wait(math.random(2, 12))
     local url = 'https://games.roblox.com/v1/games/'
         .. PlaceID
         .. '/servers/Public?sortOrder=Asc&limit=100'
@@ -546,7 +546,7 @@ end
 
 -- Watchdog: Tự động unlock sau 5s
 task.spawn(function()
-    while task.wait(0.5) do
+    while task.wait(math.random(50, 100) / 100) do
         if isTeleporting and (tick() - lastTeleportTime) > 5 then
             print('⚠️ Watchdog: Force unlock isTeleporting')
             isTeleporting = false
@@ -631,7 +631,7 @@ local function TPReturner()
                 pcall(function()
                     TeleportService:Teleport(PlaceID, Players.LocalPlayer)
                 end)
-                task.wait(3)
+                task.wait(math.random(2, 5))
                 isTeleporting = false
                 joinedCount = 0
             end

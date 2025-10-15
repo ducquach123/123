@@ -80,7 +80,7 @@ pcall(function()
     workspace.LevelOfDetail = Enum.ModelLevelOfDetail.Disabled
 end)
 
--- Tối ưu tất cả parts trong workspace (chạy ngay lập tức)
+-- Tối ưu tất cả parts trong workspace
 local ok, descs = pcall(workspace.GetDescendants, workspace)
 if ok and type(descs) == 'table' then
     for _, inst in ipairs(descs) do
@@ -213,18 +213,16 @@ end)
 
 -- ============[ ẨN BẢNG LỖI TELEPORT - NÂNG CAO ]============
 task.spawn(function()
-    while task.wait(3) do -- Check nhanh hơn: 0.1s
+    while task.wait(3) do
         pcall(function()
             local pg = LP:FindFirstChild('PlayerGui')
             if pg then
                 for _, gui in ipairs(pg:GetChildren()) do
                     if gui:IsA('ScreenGui') and gui.Enabled then
-                        -- Tìm và ẩn tất cả popup/dialog
                         for _, frame in ipairs(gui:GetDescendants()) do
                             if
                                 frame:IsA('Frame') or frame:IsA('ImageLabel')
                             then
-                                -- Check các text label bên trong
                                 for _, textObj in ipairs(frame:GetDescendants()) do
                                     if
                                         textObj:IsA('TextLabel')
@@ -233,7 +231,6 @@ task.spawn(function()
                                         local text =
                                             string.lower(textObj.Text or '')
 
-                                        -- Danh sách từ khóa lỗi
                                         local errorKeywords = {
                                             '772',
                                         }
@@ -247,16 +244,13 @@ task.spawn(function()
                                         end
 
                                         if isError then
-                                            -- Ẩn frame cha chứa lỗi
                                             frame.Visible = false
-                                            -- Hoặc ẩn cả GUI
                                             gui.Enabled = false
                                             print(
                                                 '🚫 Đã ẩn bảng lỗi:',
                                                 textObj.Text
                                             )
 
-                                            -- Tự động click nút OK/Close nếu có
                                             for _, btn in
                                                 ipairs(frame:GetDescendants())
                                             do
@@ -295,7 +289,6 @@ task.spawn(function()
                     end
                 end
 
-                -- Ẩn luôn CoreGui nếu có
                 pcall(function()
                     local coreGui = game:GetService('CoreGui')
                     for _, gui in ipairs(coreGui:GetChildren()) do
@@ -316,12 +309,10 @@ task.spawn(function()
     end
 end)
 
--- Delay 1s sau khi hoàn thành tối ưu
-task.wait(2)
+task.wait(1)
 
--- ============[ SCRIPT GỐC ]============
+-- ============[ SCRIPT GỐC - FULL AUTO FIX ]============
 
--- 🎯 Danh sách target
 local targets = {
     'Strawberry Elephant',
     'Graipuss Medussi',
@@ -364,20 +355,94 @@ local targets = {
     'Spooky and Pumpky',
 }
 
--- 🌐 Webhook
 local HttpService = game:GetService('HttpService')
 local TeleportService = game:GetService('TeleportService')
 local url =
     'https://discord.com/api/webhooks/1422467802744356955/MtviPDZEJ2mnRUkErjusdNheW3exDBVGPCg-1AXvmHjnai17llKqA1NMTeKwetjSp05k'
 
--- 🔍 Check target với Stolen và CRAFTING filter
+-- 🔒 SYSTEM LOCK với nhiều lớp bảo vệ
+local isTeleporting = false
+local lastTeleportTime = 0
+local teleportAttempts = 0
+local MAX_LOCK_TIME = 20 -- Tối đa 20s lock
+
+-- 🛡️ WATCHDOG #1: Multi-layer timeout protection
+task.spawn(function()
+    while task.wait(1) do
+        local lockDuration = tick() - lastTeleportTime
+        
+        if isTeleporting then
+            -- Layer 1: Soft timeout (15s)
+            if lockDuration > 15 then
+                print('⚠️ [WATCHDOG-1] Soft timeout 15s → unlock')
+                isTeleporting = false
+                teleportAttempts = 0
+            end
+            
+            -- Layer 2: Hard timeout (20s)
+            if lockDuration > MAX_LOCK_TIME then
+                print('🚨 [WATCHDOG-1] HARD timeout 20s → FORCE unlock')
+                isTeleporting = false
+                teleportAttempts = 0
+                lastTeleportTime = 0
+            end
+        end
+    end
+end)
+
+-- 🛡️ WATCHDOG #2: Backup protection mỗi 3s
+task.spawn(function()
+    while task.wait(3) do
+        if isTeleporting and (tick() - lastTeleportTime) > 18 then
+            print('🔓 [WATCHDOG-2] Backup unlock after 18s')
+            isTeleporting = false
+            teleportAttempts = 0
+        end
+    end
+end)
+
+-- 🛡️ WATCHDOG #3: Emergency unlock on game loaded
+task.spawn(function()
+    task.wait(5) -- Chờ game stable
+    if isTeleporting and (tick() - lastTeleportTime) > 10 then
+        print('✅ [WATCHDOG-3] Game loaded → emergency unlock')
+        isTeleporting = false
+        teleportAttempts = 0
+    end
+end)
+
+-- 🛡️ AUTO-UNLOCK khi teleport fail
+TeleportService.TeleportInitFailed:Connect(function(player, result, error, placeId, teleportOptions)
+    print('❌ [TELEPORT] InitFailed:', error, '→ instant unlock')
+    isTeleporting = false
+    teleportAttempts = 0
+    task.wait(0.5)
+end)
+
+-- 🛡️ AUTO-UNLOCK theo TeleportState
+pcall(function()
+    TeleportService.TeleportStateChanged:Connect(function(state, placeId)
+        if state == Enum.TeleportState.Failed then
+            print('❌ [TELEPORT] State Failed → instant unlock')
+            isTeleporting = false
+            teleportAttempts = 0
+        elseif state == Enum.TeleportState.Started then
+            print('🚀 [TELEPORT] State Started')
+        elseif state == Enum.TeleportState.WaitingForServer then
+            print('⏳ [TELEPORT] Waiting for server...')
+        elseif state == Enum.TeleportState.InProgress then
+            print('⏩ [TELEPORT] In Progress...')
+        end
+    end)
+end)
+
+-- 🎯 CHECK TARGET
 local function checkTargets()
     local foundTargets = {}
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA('TextLabel') and obj.Name == 'DisplayName' then
             local txt = string.lower(obj.LocalizedText or '')
 
-            -- Bỏ qua nếu là CRAFTING
             if string.upper(obj.LocalizedText or '') == 'FUSING' then
                 continue
             end
@@ -385,7 +450,6 @@ local function checkTargets()
             for _, name in ipairs(targets) do
                 if string.find(txt, string.lower(name)) then
                     if not table.find(foundTargets, name) then
-                        -- Tìm Stolen trong cùng thư mục với DisplayName
                         local parent = obj.Parent
                         local isStolen = false
 
@@ -401,7 +465,6 @@ local function checkTargets()
                             end
                         end
 
-                        -- Chỉ thêm vào list nếu KHÔNG bị stolen (không có FUSING)
                         if not isStolen then
                             table.insert(foundTargets, name)
                             print('✅ Found valid target:', name)
@@ -416,7 +479,7 @@ local function checkTargets()
     return #foundTargets > 0, foundTargets
 end
 
--- 📤 Gửi webhook
+-- 📤 SEND WEBHOOK
 local lastJobIdSent = nil
 local function sendWebhook(foundTargets)
     local placeId = game.PlaceId
@@ -486,18 +549,15 @@ local function sendWebhook(foundTargets)
     print('✅ Gửi webhook:', table.concat(foundTargets, ', '))
 end
 
--- 🚪 Server hop
+-- 📁 FILE MANAGEMENT
 local PlaceID = game.PlaceId
 local foundAnything = ''
 local AllIDs = {}
 local joinedCount = 0
-local isTeleporting = false
-local lastTeleportTime = 0
 
 local playerName = Players.LocalPlayer.Name
 local fileName = playerName .. '_Servers.json'
 
--- Đọc file riêng
 local success, result = pcall(function()
     return HttpService:JSONDecode(readfile(fileName))
 end)
@@ -510,7 +570,6 @@ else
     end)
 end
 
--- Lưu JobId (tối đa 10)
 local function saveJobId(id)
     if not table.find(AllIDs, id) then
         table.insert(AllIDs, id)
@@ -523,7 +582,7 @@ local function saveJobId(id)
     end
 end
 
--- Lấy danh sách server
+-- 📋 LIST SERVERS
 local function ListServers(cursor)
     task.wait(math.random(2, 12))
     local url = 'https://games.roblox.com/v1/games/'
@@ -544,45 +603,42 @@ local function ListServers(cursor)
     return { data = {} }
 end
 
--- Watchdog: Tự động unlock sau 5s
-task.spawn(function()
-    while task.wait(math.random(50, 100) / 100) do
-        if isTeleporting and (tick() - lastTeleportTime) > 5 then
-            print('⚠️ Watchdog: Force unlock isTeleporting')
-            isTeleporting = false
-        end
-    end
-end)
-
--- Reset flag khi teleport lỗi
-TeleportService.TeleportInitFailed:Connect(function()
-    print('⚠️ TeleportInitFailed → unlock')
-    isTeleporting = false
-end)
-
--- Lắng nghe TeleportStateChanged
-pcall(function()
-    TeleportService.TeleportStateChanged:Connect(function(state)
-        if state == Enum.TeleportState.Failed then
-            print('⚠️ TeleportState Failed → unlock')
-            isTeleporting = false
-        end
-    end)
-end)
-
--- Hàm teleport an toàn
+-- 🚀 SAFE TELEPORT với multi-layer protection
 local function SafeTeleport(id)
+    -- 🔒 CHECK #1: Đang teleport?
     if isTeleporting then
-        return
+        local waitTime = tick() - lastTeleportTime
+        print(string.format('⏸️ Locked (%.1fs) - skipping...', waitTime))
+        return false
     end
 
+    -- 🔒 CHECK #2: Quá nhiều attempts liên tục?
+    teleportAttempts = teleportAttempts + 1
+    if teleportAttempts > 3 then
+        print('⚠️ Too many attempts → cooling down 5s')
+        task.wait(5)
+        teleportAttempts = 0
+    end
+
+    -- 🔐 LOCK
     isTeleporting = true
     lastTeleportTime = tick()
     saveJobId(id)
     joinedCount = joinedCount + 1
-    print('🔄 Teleporting tới server:', id, '| Join thứ:', joinedCount)
+    
+    print(string.format('🔄 [%d] Teleporting to: %s', joinedCount, id))
 
-    local success = pcall(function()
+    -- 🛡️ TIMEOUT PROTECTION: Tự động unlock sau 12s
+    local unlockTimer = task.delay(12, function()
+        if isTeleporting and (tick() - lastTeleportTime) > 12 then
+            print('⏰ [TIMEOUT] Auto-unlock after 12s')
+            isTeleporting = false
+            teleportAttempts = 0
+        end
+    end)
+
+    -- 🚀 ATTEMPT TELEPORT
+    local success, err = pcall(function()
         TeleportService:TeleportToPlaceInstance(
             PlaceID,
             id,
@@ -590,29 +646,41 @@ local function SafeTeleport(id)
         )
     end)
 
+    -- ❌ FAILED → UNLOCK NGAY
     if not success then
-        print('❌ Teleport failed')
-        task.wait(1)
+        print('❌ Teleport error:', tostring(err))
+        task.cancel(unlockTimer)
+        task.wait(0.3)
         isTeleporting = false
+        teleportAttempts = math.max(0, teleportAttempts - 1)
+        return false
     end
+
+    -- ✅ INITIATED → Chờ state change unlock
+    print('✅ Teleport initiated → waiting for response...')
+    return true
 end
 
--- Hàm hop chính
+-- 🔄 SERVER HOP MAIN
 local function TPReturner()
+    -- 🔒 Safety check
     if isTeleporting then
         return
     end
 
+    -- 🎯 Check targets
     local found, foundTargets = checkTargets()
     if found then
         sendWebhook(foundTargets)
     end
 
+    -- 📋 Get servers
     local servers = ListServers(foundAnything)
     if servers.nextPageCursor then
         foundAnything = servers.nextPageCursor
     end
 
+    -- 🔍 Find valid server
     for _, v in ipairs(servers.data) do
         local id = tostring(v.id)
         if
@@ -620,29 +688,83 @@ local function TPReturner()
             and id ~= game.JobId
             and not table.find(AllIDs, id)
         then
-            SafeTeleport(id)
-
-            if joinedCount >= 100 then
-                print(
-                    '⚠️ Đã join 100 server không thấy target → teleport random'
-                )
-                isTeleporting = true
-                lastTeleportTime = tick()
-                pcall(function()
-                    TeleportService:Teleport(PlaceID, Players.LocalPlayer)
-                end)
-                task.wait(math.random(7, 10))
-                isTeleporting = false
-                joinedCount = 0
+            local success = SafeTeleport(id)
+            
+            if success then
+                -- 🔁 Reset counter nếu join 100 server
+                if joinedCount >= 100 then
+                    print('🔄 100 servers hopped → reset & random teleport')
+                    isTeleporting = true
+                    lastTeleportTime = tick()
+                    pcall(function()
+                        TeleportService:Teleport(PlaceID, Players.LocalPlayer)
+                    end)
+                    task.wait(5)
+                    isTeleporting = false
+                    joinedCount = 0
+                    teleportAttempts = 0
+                end
+                break
+            else
+                -- Thử server khác nếu fail
+                task.wait(0.5)
             end
-            break
         end
     end
 end
 
--- Loop chính
-while task.wait(0.3) do
-    if not isTeleporting then
-        pcall(TPReturner)
+-- 🎮 MANUAL UNLOCK COMMAND
+Players.LocalPlayer.Chatted:Connect(function(msg)
+    if msg:lower() == '/unlock' or msg:lower() == '/reset' then
+        isTeleporting = false
+        teleportAttempts = 0
+        lastTeleportTime = 0
+        joinedCount = 0
+        print('🔓 Manual unlock! All flags reset.')
+    elseif msg:lower() == '/status' then
+        print('━━━━━━━━━━━━━━━━━━━━')
+        print('📊 STATUS:')
+        print('  Lock:', isTeleporting)
+        print('  Time:', string.format('%.1fs', tick() - lastTeleportTime))
+        print('  Attempts:', teleportAttempts)
+        print('  Joined:', joinedCount)
+        print('━━━━━━━━━━━━━━━━━━━━')
     end
+end)
+
+-- 🔁 MAIN LOOP với error recovery
+print('🎯 Starting server hopper...')
+print('💡 Commands: /unlock, /status')
+
+local loopErrors = 0
+while true do
+    local success, err = pcall(function()
+        if not isTeleporting then
+            TPReturner()
+        else
+            local lockTime = tick() - lastTeleportTime
+            if lockTime > 2 then -- Log mỗi 2s
+                print(string.format('⏳ Locked for %.1fs...', lockTime))
+            end
+        end
+    end)
+    
+    if not success then
+        loopErrors = loopErrors + 1
+        warn('⚠️ Loop error:', err)
+        
+        if loopErrors > 5 then
+            print('🚨 Too many errors → force unlock')
+            isTeleporting = false
+            teleportAttempts = 0
+            loopErrors = 0
+        end
+        
+        task.wait(2)
+    else
+        loopErrors = 0
+    end
+    
+    -- Random delay tránh spam
+    task.wait(math.random(3, 8) / 10)
 end

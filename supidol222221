@@ -213,7 +213,7 @@ end)
 
 -- ============[ ẨN BẢNG LỖI TELEPORT - NÂNG CAO ]============
 task.spawn(function()
-    while task.wait(1) do -- Check nhanh hơn: 0.1s
+    while task.wait(3) do -- Check nhanh hơn: 0.1s
         pcall(function()
             local pg = LP:FindFirstChild('PlayerGui')
             if pg then
@@ -631,7 +631,7 @@ local function TPReturner()
                 pcall(function()
                     TeleportService:Teleport(PlaceID, Players.LocalPlayer)
                 end)
-                task.wait(math.random(5, 10))
+                task.wait(math.random(7, 10))
                 isTeleporting = false
                 joinedCount = 0
             end

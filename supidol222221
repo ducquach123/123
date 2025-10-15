@@ -317,7 +317,7 @@ task.spawn(function()
 end)
 
 -- Delay 1s sau khi hoàn thành tối ưu
-task.wait(1)
+task.wait(2)
 
 -- ============[ SCRIPT GỐC ]============
 

@@ -364,14 +364,14 @@ local url =
 local isTeleporting = false
 local lastTeleportTime = 0
 local teleportAttempts = 0
-local MAX_LOCK_TIME = 20
+local MAX_LOCK_TIME = 20 -- Tối đa 20s lock
 
--- 🛡️ WATCHDOG #1: Multi-layer timeout protection (CHECK NHANH)
+-- 🛡️ WATCHDOG #1: Multi-layer timeout protection
 task.spawn(function()
-    while task.wait(0.5) do
+    while task.wait(1) do
+        local lockDuration = tick() - lastTeleportTime
+        
         if isTeleporting then
-            local lockDuration = tick() - lastTeleportTime
-            
             -- Layer 1: Soft timeout (15s)
             if lockDuration > 15 then
                 print('⚠️ [WATCHDOG-1] Soft timeout 15s → unlock')
@@ -390,9 +390,9 @@ task.spawn(function()
     end
 end)
 
--- 🛡️ WATCHDOG #2: Backup protection nhanh hơn
+-- 🛡️ WATCHDOG #2: Backup protection mỗi 3s
 task.spawn(function()
-    while task.wait(2) do
+    while task.wait(3) do
         if isTeleporting and (tick() - lastTeleportTime) > 18 then
             print('🔓 [WATCHDOG-2] Backup unlock after 18s')
             isTeleporting = false
@@ -401,16 +401,13 @@ task.spawn(function()
     end
 end)
 
--- 🛡️ WATCHDOG #3: Emergency unlock on game loaded (NHANH)
+-- 🛡️ WATCHDOG #3: Emergency unlock on game loaded
 task.spawn(function()
-    task.wait(2)
-    while task.wait(1) do
-        if isTeleporting and (tick() - lastTeleportTime) > 8 then
-            print('✅ [WATCHDOG-3] Emergency unlock after 8s')
-            isTeleporting = false
-            teleportAttempts = 0
-            break
-        end
+    task.wait(5) -- Chờ game stable
+    if isTeleporting and (tick() - lastTeleportTime) > 10 then
+        print('✅ [WATCHDOG-3] Game loaded → emergency unlock')
+        isTeleporting = false
+        teleportAttempts = 0
     end
 end)
 
@@ -422,22 +419,19 @@ TeleportService.TeleportInitFailed:Connect(function(player, result, error, place
     task.wait(0.5)
 end)
 
--- 🛡️ AUTO-UNLOCK theo TeleportState (FIX CHÍNH)
+-- 🛡️ AUTO-UNLOCK theo TeleportState
 pcall(function()
     TeleportService.TeleportStateChanged:Connect(function(state, placeId)
-        print('📡 [TELEPORT] State:', tostring(state))
-        
         if state == Enum.TeleportState.Failed then
             print('❌ [TELEPORT] State Failed → instant unlock')
             isTeleporting = false
             teleportAttempts = 0
-            lastTeleportTime = 0
         elseif state == Enum.TeleportState.Started then
             print('🚀 [TELEPORT] State Started')
         elseif state == Enum.TeleportState.WaitingForServer then
             print('⏳ [TELEPORT] Waiting for server...')
         elseif state == Enum.TeleportState.InProgress then
-            print('⏳ [TELEPORT] In Progress...')
+            print('⏩ [TELEPORT] In Progress...')
         end
     end)
 end)
@@ -626,24 +620,22 @@ local function SafeTeleport(id)
         teleportAttempts = 0
     end
 
-    -- 🔓 LOCK
+    -- 🔐 LOCK
     isTeleporting = true
     lastTeleportTime = tick()
     saveJobId(id)
     joinedCount = joinedCount + 1
     
-    print(string.format('📍 [%d] Teleporting to: %s', joinedCount, id))
+    print(string.format('🔄 [%d] Teleporting to: %s', joinedCount, id))
 
     -- 🛡️ TIMEOUT PROTECTION: Tự động unlock sau 12s
-    local function autoUnlock()
-        task.wait(12)
+    local unlockTimer = task.delay(12, function()
         if isTeleporting and (tick() - lastTeleportTime) > 12 then
-            print('⏱️ [TIMEOUT] Auto-unlock after 12s')
+            print('⏰ [TIMEOUT] Auto-unlock after 12s')
             isTeleporting = false
             teleportAttempts = 0
         end
-    end
-    task.spawn(autoUnlock)
+    end)
 
     -- 🚀 ATTEMPT TELEPORT
     local success, err = pcall(function()
@@ -657,6 +649,7 @@ local function SafeTeleport(id)
     -- ❌ FAILED → UNLOCK NGAY
     if not success then
         print('❌ Teleport error:', tostring(err))
+        task.cancel(unlockTimer)
         task.wait(0.3)
         isTeleporting = false
         teleportAttempts = math.max(0, teleportAttempts - 1)
@@ -668,7 +661,7 @@ local function SafeTeleport(id)
     return true
 end
 
--- 📍 SERVER HOP MAIN
+-- 🔄 SERVER HOP MAIN
 local function TPReturner()
     -- 🔒 Safety check
     if isTeleporting then
@@ -698,15 +691,15 @@ local function TPReturner()
             local success = SafeTeleport(id)
             
             if success then
-                -- 📊 Reset counter nếu join 100 server
+                -- 🔁 Reset counter nếu join 100 server
                 if joinedCount >= 100 then
-                    print('📍 100 servers hopped → reset & random teleport')
+                    print('🔄 100 servers hopped → reset & random teleport')
                     isTeleporting = true
                     lastTeleportTime = tick()
                     pcall(function()
                         TeleportService:Teleport(PlaceID, Players.LocalPlayer)
                     end)
-                    task.wait(math.random(7,10))
+                    task.wait(math.random(9,15))
                     isTeleporting = false
                     joinedCount = 0
                     teleportAttempts = 0
@@ -729,18 +722,17 @@ Players.LocalPlayer.Chatted:Connect(function(msg)
         joinedCount = 0
         print('🔓 Manual unlock! All flags reset.')
     elseif msg:lower() == '/status' then
-        local lockTime = isTeleporting and (tick() - lastTeleportTime) or 0
-        print('════════════════════════════')
+        print('━━━━━━━━━━━━━━━━━━━━')
         print('📊 STATUS:')
-        print('  Lock:', tostring(isTeleporting))
-        print('  Time:', string.format('%.1fs', lockTime))
+        print('  Lock:', isTeleporting)
+        print('  Time:', string.format('%.1fs', tick() - lastTeleportTime))
         print('  Attempts:', teleportAttempts)
         print('  Joined:', joinedCount)
-        print('════════════════════════════')
+        print('━━━━━━━━━━━━━━━━━━━━')
     end
 end)
 
--- 🎯 MAIN LOOP với error recovery
+-- 🔁 MAIN LOOP với error recovery
 print('🎯 Starting server hopper...')
 print('💡 Commands: /unlock, /status')
 
@@ -751,7 +743,7 @@ while true do
             TPReturner()
         else
             local lockTime = tick() - lastTeleportTime
-            if lockTime > 2 then
+            if lockTime > 2 then -- Log mỗi 2s
                 print(string.format('⏳ Locked for %.1fs...', lockTime))
             end
         end

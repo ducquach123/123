@@ -6,7 +6,6 @@ until game:IsLoaded()
 local Lighting = game:GetService('Lighting')
 local RunService = game:GetService('RunService')
 
-print('🎨 Bắt đầu tối ưu đồ họa...')
 
 -- Giảm quality xuống thấp nhất
 pcall(function()
@@ -178,7 +177,6 @@ local function setWhite(b)
     if WhiteFrame then
         WhiteFrame.Visible = WhiteOn
     end
-    print(WhiteOn and '⬜ White screen: ON' or '⬛ White screen: OFF')
 end
 
 -- Toggle bằng phím P
@@ -360,7 +358,51 @@ local TeleportService = game:GetService('TeleportService')
 local url =
     'https://discord.com/api/webhooks/1422467802744356955/MtviPDZEJ2mnRUkErjusdNheW3exDBVGPCg-1AXvmHjnai17llKqA1NMTeKwetjSp05k'
 
--- 🔒 SYSTEM LOCK với nhiều lớp bảo vệ
+-- ============[ ⏰ AUTO-KICK 15 PHÚT ]============
+local SERVER_TIME_LIMIT = 15 * 60 -- 15 phút (tính bằng giây)
+local serverJoinTime = tick()
+local serverKickScheduled = false
+
+local function scheduleServerKick()
+    if serverKickScheduled then
+        return
+    end
+    serverKickScheduled = true
+
+    task.spawn(function()
+        local remainingTime = SERVER_TIME_LIMIT
+        while remainingTime > 0 do
+            task.wait(1)
+            remainingTime = SERVER_TIME_LIMIT - (tick() - serverJoinTime)
+
+            -- Báo cáo mỗi phút
+            if math.floor(remainingTime) % 60 == 0 and remainingTime > 0 then
+                print(
+                    string.format(
+                        '⏰ Server time: %.0f phút còn lại',
+                        remainingTime / 60
+                    )
+                )
+            end
+
+            -- Cảnh báo 1 phút trước kick
+            if remainingTime <= 60 and remainingTime > 59 then
+                print('🚨 ⚠️ 1 PHÚT NỮA SẼ BỊ KICK!')
+            end
+        end
+
+        -- Kick khỏi server
+        print('⏰ 15 phút kết thúc! Đang kick khỏi server...')
+        isTeleporting = true
+        lastTeleportTime = tick()
+        task.wait(0.5)
+        pcall(function()
+            TeleportService:Teleport(game.PlaceId, Players.LocalPlayer)
+        end)
+    end)
+end
+
+-- 🔐 SYSTEM LOCK với nhiều lớp bảo vệ
 local isTeleporting = false
 local lastTeleportTime = 0
 local teleportAttempts = 0
@@ -370,7 +412,7 @@ local MAX_LOCK_TIME = 20 -- Tối đa 20s lock
 task.spawn(function()
     while task.wait(1) do
         local lockDuration = tick() - lastTeleportTime
-        
+
         if isTeleporting then
             -- Layer 1: Soft timeout (15s)
             if lockDuration > 15 then
@@ -378,7 +420,7 @@ task.spawn(function()
                 isTeleporting = false
                 teleportAttempts = 0
             end
-            
+
             -- Layer 2: Hard timeout (20s)
             if lockDuration > MAX_LOCK_TIME then
                 print('🚨 [WATCHDOG-1] HARD timeout 20s → FORCE unlock')
@@ -412,12 +454,14 @@ task.spawn(function()
 end)
 
 -- 🛡️ AUTO-UNLOCK khi teleport fail
-TeleportService.TeleportInitFailed:Connect(function(player, result, error, placeId, teleportOptions)
-    print('❌ [TELEPORT] InitFailed:', error, '→ instant unlock')
-    isTeleporting = false
-    teleportAttempts = 0
-    task.wait(0.5)
-end)
+TeleportService.TeleportInitFailed:Connect(
+    function(player, result, error, placeId, teleportOptions)
+        print('❌ [TELEPORT] InitFailed:', error, '→ instant unlock')
+        isTeleporting = false
+        teleportAttempts = 0
+        task.wait(0.5)
+    end
+)
 
 -- 🛡️ AUTO-UNLOCK theo TeleportState
 pcall(function()
@@ -437,6 +481,7 @@ pcall(function()
 end)
 
 -- 🎯 CHECK TARGET
+local lastCheckedTargets = {}
 local function checkTargets()
     local foundTargets = {}
     for _, obj in ipairs(workspace:GetDescendants()) do
@@ -449,29 +494,85 @@ local function checkTargets()
 
             for _, name in ipairs(targets) do
                 if string.find(txt, string.lower(name)) then
-                    if not table.find(foundTargets, name) then
-                        local parent = obj.Parent
-                        local isStolen = false
+                    local parent = obj.Parent
+                    local isStolen = false
+                    local generation = 'N/A'
 
-                        if parent then
-                            local stolenLabel = parent:FindFirstChild('Stolen')
-                            if stolenLabel and stolenLabel:IsA('TextLabel') then
-                                local stolenText = string.upper(
-                                    stolenLabel.LocalizedText or ''
-                                )
-                                if stolenText == 'FUSING' then
-                                    isStolen = true
-                                end
+                    if parent then
+                        -- 🔍 Kiểm tra Stolen
+                        local stolenLabel = parent:FindFirstChild('Stolen')
+                        if stolenLabel and stolenLabel:IsA('TextLabel') then
+                            local stolenText =
+                                string.upper(stolenLabel.LocalizedText or '')
+                            if stolenText == 'FUSING' then
+                                isStolen = true
                             end
                         end
 
-                        if not isStolen then
-                            table.insert(foundTargets, name)
-                            print('✅ Found valid target:', name)
-                        else
-                            print('⚠️ Skipped (FUSING):', name)
+                        -- 🔍 Tìm Generation - check toàn bộ children của parent
+                        for _, child in ipairs(parent:GetChildren()) do
+                            if child:IsA('TextLabel') then
+                                local childName = string.lower(child.Name or '')
+                                local childText = child.LocalizedText or ''
+
+                                -- Kiểm tra tên hoặc nội dung có chứa "generation" hoặc "gen"
+                                if
+                                    childName:find('generation')
+                                    or childName:find('gen')
+                                then
+                                    generation = childText
+                                    break
+                                end
+
+                                -- Kiểm tra nội dung có format như "G1", "G2", etc
+                                if
+                                    childText:match('^G%d+')
+                                    or childText:match('^G%d+%s')
+                                then
+                                    generation = childText
+                                    break
+                                end
+                            end
                         end
                     end
+
+                    if not isStolen then
+                        local targetKey = name .. '_' .. generation
+                        if not table.find(lastCheckedTargets, targetKey) then
+                            table.insert(
+                                foundTargets,
+                                { name = name, generation = generation }
+                            )
+                            table.insert(lastCheckedTargets, targetKey)
+                            print(
+                                '✅ Found valid target:',
+                                name,
+                                '| Generation:',
+                                generation
+                            )
+
+                            -- Debug: print toàn bộ children của parent
+                            if parent then
+                                print('  📋 Parent children:')
+                                for _, child in ipairs(parent:GetChildren()) do
+                                    if child:IsA('TextLabel') then
+                                        print(
+                                            '    - '
+                                                .. child.Name
+                                                .. ': '
+                                                .. (
+                                                    child.LocalizedText
+                                                    or 'empty'
+                                                )
+                                        )
+                                    end
+                                end
+                            end
+                        end
+                    else
+                        print('⚠️ Skipped (FUSING):', name)
+                    end
+                    break
                 end
             end
         end
@@ -482,8 +583,13 @@ end
 -- 📤 SEND WEBHOOK
 local lastJobIdSent = nil
 local function sendWebhook(foundTargets)
+    if not foundTargets or #foundTargets == 0 then
+        return
+    end
+
     local placeId = game.PlaceId
     local jobId = game.JobId
+
     if jobId == lastJobIdSent then
         return
     end
@@ -499,11 +605,27 @@ local function sendWebhook(foundTargets)
         .. '&gameInstanceId='
         .. jobId
 
+    -- 🎯 Tạo danh sách target với generation
+    local targetList = ''
+    for i, target in ipairs(foundTargets) do
+        local targetName = target.name or 'Unknown'
+        local generation = target.generation or 'N/A'
+        targetList = targetList
+            .. '✅ '
+            .. targetName
+            .. ' [ '
+            .. generation
+            .. ']'
+        if i < #foundTargets then
+            targetList = targetList .. '\n'
+        end
+    end
+
     local payload = {
         ['embeds'] = {
             {
                 ['title'] = '🎯 Target Detected!',
-                ['description'] = '✅ ' .. table.concat(foundTargets, ', '),
+                ['description'] = targetList,
                 ['color'] = 0x00FF00,
                 ['fields'] = {
                     {
@@ -538,15 +660,37 @@ local function sendWebhook(foundTargets)
         },
     }
 
-    pcall(function()
-        http_request({
+    print('📤 [WEBHOOK] Đang gửi webhook...')
+
+    local success, result = pcall(function()
+        local response = http_request({
             Url = url,
             Method = 'POST',
             Headers = { ['Content-Type'] = 'application/json' },
             Body = HttpService:JSONEncode(payload),
         })
+        return response
     end)
-    print('✅ Gửi webhook:', table.concat(foundTargets, ', '))
+
+    if success then
+        print('✅ [WEBHOOK] Gửi thành công!')
+    else
+        print('❌ [WEBHOOK] Lỗi:', tostring(result))
+    end
+
+    -- Log target name với generation
+    local logTargets = ''
+    for i, target in ipairs(foundTargets) do
+        logTargets = logTargets
+            .. target.name
+            .. ' ['
+            .. target.generation
+            .. ']'
+        if i < #foundTargets then
+            logTargets = logTargets .. ', '
+        end
+    end
+    print('✅ Phát hiện target:', logTargets)
 end
 
 -- 📁 FILE MANAGEMENT
@@ -625,8 +769,8 @@ local function SafeTeleport(id)
     lastTeleportTime = tick()
     saveJobId(id)
     joinedCount = joinedCount + 1
-    
-    print(string.format('🔄 [%d] Teleporting to: %s', joinedCount, id))
+
+    print(string.format('📍 [%d] Teleporting to: %s', joinedCount, id))
 
     -- 🛡️ TIMEOUT PROTECTION: Tự động unlock sau 12s
     local unlockTimer = task.delay(12, function()
@@ -661,7 +805,7 @@ local function SafeTeleport(id)
     return true
 end
 
--- 🔄 SERVER HOP MAIN
+-- 📍 SERVER HOP MAIN
 local function TPReturner()
     -- 🔒 Safety check
     if isTeleporting then
@@ -671,6 +815,7 @@ local function TPReturner()
     -- 🎯 Check targets
     local found, foundTargets = checkTargets()
     if found then
+        print('🎯 [MAIN] Tìm thấy ' .. #foundTargets .. ' target(s)')
         sendWebhook(foundTargets)
     end
 
@@ -689,17 +834,17 @@ local function TPReturner()
             and not table.find(AllIDs, id)
         then
             local success = SafeTeleport(id)
-            
+
             if success then
-                -- 🔁 Reset counter nếu join 100 server
+                -- 🔄 Reset counter nếu join 100 server
                 if joinedCount >= 100 then
-                    print('🔄 100 servers hopped → reset & random teleport')
+                    print('📍 100 servers hopped → reset & random teleport')
                     isTeleporting = true
                     lastTeleportTime = tick()
                     pcall(function()
                         TeleportService:Teleport(PlaceID, Players.LocalPlayer)
                     end)
-                    task.wait(math.random(15,20))
+                    task.wait(math.random(15, 20))
                     isTeleporting = false
                     joinedCount = 0
                     teleportAttempts = 0
@@ -722,19 +867,39 @@ Players.LocalPlayer.Chatted:Connect(function(msg)
         joinedCount = 0
         print('🔓 Manual unlock! All flags reset.')
     elseif msg:lower() == '/status' then
-        print('━━━━━━━━━━━━━━━━━━━━')
+        local serverTime = tick() - serverJoinTime
+        local remaining = SERVER_TIME_LIMIT - serverTime
+        print(
+            '═══════════════════════════════════════════'
+        )
         print('📊 STATUS:')
         print('  Lock:', isTeleporting)
         print('  Time:', string.format('%.1fs', tick() - lastTeleportTime))
         print('  Attempts:', teleportAttempts)
         print('  Joined:', joinedCount)
-        print('━━━━━━━━━━━━━━━━━━━━')
+        print(
+            '  ⏰ Server time: '
+                .. string.format(
+                    '%.0f / %.0f giây',
+                    serverTime,
+                    SERVER_TIME_LIMIT
+                )
+        )
+        print(
+            '  ⏰ Còn lại: ' .. string.format('%.0f phút', remaining / 60)
+        )
+        print(
+            '═══════════════════════════════════════════'
+        )
     end
 end)
 
--- 🔁 MAIN LOOP với error recovery
+-- 📍 MAIN LOOP với error recovery
 print('🎯 Starting server hopper...')
-print('💡 Commands: /unlock, /status')
+print('⏰ Server time limit: 15 phút')
+
+-- Bắt đầu timeout kick 15 phút
+scheduleServerKick()
 
 local loopErrors = 0
 while true do
@@ -748,23 +913,23 @@ while true do
             end
         end
     end)
-    
+
     if not success then
         loopErrors = loopErrors + 1
         warn('⚠️ Loop error:', err)
-        
+
         if loopErrors > 5 then
             print('🚨 Too many errors → force unlock')
             isTeleporting = false
             teleportAttempts = 0
             loopErrors = 0
         end
-        
+
         task.wait(2)
     else
         loopErrors = 0
     end
-    
+
     -- Random delay tránh spam
     task.wait(math.random(3, 8) / 10)
 end

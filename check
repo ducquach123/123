@@ -28,7 +28,6 @@ local function fetch_and_exec(url)
         return false, err
     end
 
-    print('[fetch_and_exec] Thực thi thành công:', url)
     return true
 end
 

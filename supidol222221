@@ -313,7 +313,6 @@ task.wait(1)
 
 local targets = {
     'Strawberry Elephant',
-    'Graipuss Medussi',
     'To to to Sahur',
     'Pot Hotspot',
     'Chicleteira Bicicleteira',

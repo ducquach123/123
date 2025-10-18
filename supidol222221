@@ -351,6 +351,9 @@ local targets = {
     'Los Mobilis',
     'Eviledon',
     'Spooky and Pumpky',
+    'Mieteteira Bicicleteira',
+    'Rang Ring Bus',
+    'Horegini Boom',
 }
 
 local HttpService = game:GetService('HttpService')

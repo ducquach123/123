@@ -1,0 +1,31 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local COUNTDOWN_SECONDS = 360
+local REASON = "(mã 267)"
+
+-- Tạo GUI hiển thị thời gian
+local gui = Instance.new("ScreenGui")
+gui.Name = "KickCountdown"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+local label = Instance.new("TextLabel")
+label.Size = UDim2.fromScale(0.5, 0.1)
+label.Position = UDim2.fromScale(0.25, 0.05)
+label.BackgroundTransparency = 0.3
+label.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+label.TextColor3 = Color3.fromRGB(255, 255, 255)
+label.Font = Enum.Font.SourceSansBold
+label.TextSize = 36
+label.Text = "Kick sau " .. COUNTDOWN_SECONDS .. "s"
+label.Parent = gui
+
+-- Đếm ngược và kick
+for i = COUNTDOWN_SECONDS, 1, -1 do
+    label.Text = "Kick sau " .. i .. "s"
+    task.wait(1)
+end
+
+player:Kick(REASON)

@@ -312,6 +312,7 @@ task.wait(1)
 -- ============[ SCRIPT GỐC - FULL AUTO FIX ]============
 
 local targets = {
+    'Burrito Bandito',
     'Strawberry Elephant',
     'To to to Sahur',
     'Pot Hotspot',

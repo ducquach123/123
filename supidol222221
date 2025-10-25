@@ -844,7 +844,7 @@ local function TPReturner()
                     pcall(function()
                         TeleportService:Teleport(PlaceID, Players.LocalPlayer)
                     end)
-                    task.wait(math.random(15, 20))
+                    task.wait(5)
                     isTeleporting = false
                     joinedCount = 0
                     teleportAttempts = 0

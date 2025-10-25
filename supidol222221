@@ -307,7 +307,6 @@ task.spawn(function()
     end
 end)
 
-task.wait(1)
 
 -- ============[ SCRIPT GỐC - FULL AUTO FIX ]============
 

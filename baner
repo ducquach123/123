@@ -2,7 +2,7 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local COUNTDOWN_SECONDS = 360
+local COUNTDOWN_SECONDS = 56
 local REASON = "(mã 267)"
 
 -- Tạo GUI hiển thị thời gian

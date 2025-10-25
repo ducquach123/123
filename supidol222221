@@ -314,8 +314,6 @@ task.wait(1)
 local targets = {
     'Burrito Bandito',
     'Strawberry Elephant',
-    'To to to Sahur',
-    'Pot Hotspot',
     'Chicleteira Bicicleteira',
     'Los Chicleteiras',
     'La Grande Combinasion',
@@ -352,8 +350,7 @@ local targets = {
     'Eviledon',
     'Spooky and Pumpky',
     'Mieteteira Bicicleteira',
-    'Rang Ring Bus',
-    'Horegini Boom',
+    'Los Spooky Combinasionas',
 }
 
 local HttpService = game:GetService('HttpService')

@@ -311,6 +311,7 @@ end)
 -- ============[ SCRIPT GỐC - FULL AUTO FIX ]============
 
 local targets = {
+    'Chipso and Queso',
     'La Casa Boo',
     'Tang Tang Keletang',
     'Headless Horseman',  

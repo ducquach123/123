@@ -1,10 +1,12 @@
--- 🌟 MINI MENU GUI FULL SCRIPT (Auto Clear Outfit + X-Ray skip “claim” + Bệ Nâng có check trần)
+-- 🌟 MINI MENU GUI FULL SCRIPT + AUTO-HOLD STEAL FIX (v2)
 -- Đặt trong StarterGui hoặc StarterPlayerScripts (LocalScript)
 
 local Players = game:GetService('Players')
 local UserInputService = game:GetService('UserInputService')
 local RunService = game:GetService('RunService')
 local Workspace = game:GetService('Workspace')
+local ProximityPromptService = game:GetService('ProximityPromptService')
+local VirtualUser = game:GetService('VirtualUser')
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild('PlayerGui')
@@ -16,8 +18,8 @@ screenGui.ResetOnSpawn = false
 
 local mainFrame = Instance.new('Frame', screenGui)
 mainFrame.Name = 'MainFrame'
-mainFrame.Size = UDim2.new(0, 200, 0, 205)
-mainFrame.Position = UDim2.new(0, 10, 1, -215)
+mainFrame.Size = UDim2.new(0, 200, 0, 245)
+mainFrame.Position = UDim2.new(0, 10, 1, -255)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
 Instance.new('UICorner', mainFrame).CornerRadius = UDim.new(0, 10)
@@ -51,13 +53,114 @@ local btnClearAvatar = makeButton('ClearAvatarBtn', 'Xóa Avatar (Tất cả)', 
 local btnSpamSlap   = makeButton('SpamSlapBtn', 'Spam Slap: OFF (R)', Color3.fromRGB(50, 150, 220), 80)
 local btnXRay       = makeButton('XRayBtn', 'X-Ray Plots: OFF', Color3.fromRGB(150, 50, 220), 120)
 local btnLift       = makeButton('LiftBtn', 'Bệ Nâng: OFF (C)', Color3.fromRGB(255, 140, 0), 160)
+local btnAutoHold   = makeButton('AutoHoldBtn', 'Auto-Hold Steal: OFF (T)', Color3.fromRGB(255, 200, 50), 200)
 
 -- ⚙️ Variables
 local isSpamming = false
 local xrayEnabled = false
 local liftEnabled = false
+local AUTO_HOLD_ENABLED = true -- mặc định OFF
 
--- ======================= 🧍 AUTO CLEAR OUTFIT =======================
+---------------------------------------------------------
+-- ======================= AUTO HOLD E ==================
+---------------------------------------------------------
+local HOLD_CHECK_DELAY = 0.02
+local MAX_HOLD_TIME = 8
+
+local function isStealPrompt(prompt)
+	if not prompt then return false end
+	local a = tostring(prompt.ActionText or ""):lower()
+	local o = tostring(prompt.ObjectText or ""):lower()
+	local n = tostring(prompt.Name or ""):lower()
+	return a:find("steal") or o:find("steal") or n:find("steal")
+end
+
+local function release_virtualuser()
+	pcall(function()
+		VirtualUser:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+	end)
+end
+
+local function safe_end_hold(prompt, usedAPI, usedVirtual)
+	pcall(function()
+		if usedAPI and prompt and prompt.Parent then
+			prompt:InputHoldEnd()
+		end
+	end)
+	if usedVirtual then
+		release_virtualuser()
+	end
+end
+
+local function holdPromptUntilDone(prompt)
+	task.spawn(function()
+		task.wait()
+		if not AUTO_HOLD_ENABLED or not prompt or not prompt.Parent then return end
+		if not isStealPrompt(prompt) then return end
+
+		local usedAPI, usedVirtual = false, false
+		local success = pcall(function()
+			if typeof(prompt.InputHoldBegin) == "function" then
+				usedAPI = true
+				prompt:InputHoldBegin()
+			else
+				usedVirtual = true
+				VirtualUser:CaptureController()
+				VirtualUser:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+			end
+		end)
+
+		if not success then
+			pcall(function()
+				if fireproximityprompt then
+					while AUTO_HOLD_ENABLED and prompt and prompt.Enabled do
+						fireproximityprompt(prompt)
+						task.wait(0.05)
+					end
+				end
+			end)
+			return
+		end
+
+		local start = os.clock()
+		while AUTO_HOLD_ENABLED and prompt and prompt.Parent and prompt.Enabled and (os.clock() - start < MAX_HOLD_TIME) do
+			task.wait(HOLD_CHECK_DELAY)
+		end
+
+		safe_end_hold(prompt, usedAPI, usedVirtual)
+		task.delay(0.2, release_virtualuser)
+	end)
+end
+
+ProximityPromptService.PromptShown:Connect(function(prompt)
+	if AUTO_HOLD_ENABLED and isStealPrompt(prompt) then
+		holdPromptUntilDone(prompt)
+	end
+end)
+
+workspace.DescendantRemoving:Connect(function(v)
+	if v:IsA("ProximityPrompt") then
+		release_virtualuser()
+	end
+end)
+
+local function toggleAutoHold()
+	AUTO_HOLD_ENABLED = not AUTO_HOLD_ENABLED
+	if AUTO_HOLD_ENABLED then
+		btnAutoHold.Text = "Auto-Hold Steal: ON (T)"
+		btnAutoHold.BackgroundColor3 = Color3.fromRGB(100, 220, 100)
+		print("🟢 Auto-Hold Steal: ON")
+	else
+		btnAutoHold.Text = "Auto-Hold Steal: OFF (T)"
+		btnAutoHold.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+		release_virtualuser()
+		print("🔴 Auto-Hold Steal: OFF")
+	end
+end
+
+---------------------------------------------------------
+-- ======================= CLEAR OUTFIT =================
+---------------------------------------------------------
 local function clearMyAvatar()
 	player:ClearCharacterAppearance()
 	print('✅ Đã xóa outfit của BẠN!')
@@ -70,7 +173,9 @@ local function clearAllAvatars()
 end
 if player.Character then clearMyAvatar() else player.CharacterAdded:Wait(); clearMyAvatar() end
 
--- ======================= ✋ SPAM SLAP =======================
+---------------------------------------------------------
+-- ======================= SPAM SLAP ====================
+---------------------------------------------------------
 local function getSlapTool()
 	local backpack = player:WaitForChild('Backpack')
 	for _, item in ipairs(backpack:GetChildren()) do
@@ -104,7 +209,9 @@ local function startSpamSlap()
 	end)
 end
 
--- ======================= 👁️ X-RAY (Skip “claim”) =======================
+---------------------------------------------------------
+-- ======================= X-RAY ========================
+---------------------------------------------------------
 local ModifiedParts, OriginalProperties = {}, {}
 local XrayTransparency = 0.7
 local PlotsFolder = Workspace:FindFirstChild("Plots")
@@ -176,7 +283,9 @@ if PlotsFolder then
 	end)
 end
 
--- ======================= 🟦 BỆ NÂNG (Có check trần) =======================
+---------------------------------------------------------
+-- ======================= LIFT =========================
+---------------------------------------------------------
 local Settings = {
 	PlatformSize = Vector3.new(6, 1, 6),
 	LiftSpeed = 50,
@@ -291,13 +400,16 @@ local function toggleLift()
 end
 player.CharacterAdded:Connect(stopLifting)
 
--- ======================= 🖱️ BUTTONS =======================
+---------------------------------------------------------
+-- ======================= BUTTONS ======================
+---------------------------------------------------------
 btnClearAvatar.MouseButton1Click:Connect(function()
 	clearAllAvatars()
 	btnClearAvatar.BackgroundColor3 = Color3.fromRGB(100, 220, 100)
 	task.wait(0.2)
 	btnClearAvatar.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
 end)
+
 btnSpamSlap.MouseButton1Click:Connect(function()
 	isSpamming = not isSpamming
 	if isSpamming then
@@ -309,11 +421,14 @@ btnSpamSlap.MouseButton1Click:Connect(function()
 		btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 150, 220)
 	end
 end)
+
 btnXRay.MouseButton1Click:Connect(toggleXray)
 btnLift.MouseButton1Click:Connect(toggleLift)
+btnAutoHold.MouseButton1Click:Connect(toggleAutoHold)
 
--- ======================= ⌨️ HOTKEYS =======================
--- ======================= ⌨️ HOTKEYS =======================
+---------------------------------------------------------
+-- ======================= HOTKEYS ======================
+---------------------------------------------------------
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed then return end
 	if input.KeyCode == Enum.KeyCode.R then

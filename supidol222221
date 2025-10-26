@@ -311,6 +311,7 @@ end)
 -- ============[ SCRIPT GỐC - FULL AUTO FIX ]============
 
 local targets = {
+    'Headless Horseman',  
     'Burrito Bandito',
     'Strawberry Elephant',
     'Chicleteira Bicicleteira',

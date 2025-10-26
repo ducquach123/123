@@ -1,8 +1,9 @@
--- Mini Menu GUI Script (FULL CUSTOM VERSION)
+-- Mini Menu GUI Script với X-Ray
 -- Đặt trong StarterGui hoặc StarterPlayerScripts (LocalScript)
 
 local Players = game:GetService('Players')
 local UserInputService = game:GetService('UserInputService')
+local Workspace = game:GetService('Workspace')
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild('PlayerGui')
@@ -13,11 +14,11 @@ screenGui.Name = 'MiniMenu'
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- 🎛️ Frame chính
+-- 🎛️ Frame chính (tăng chiều cao)
 local mainFrame = Instance.new('Frame')
 mainFrame.Name = 'MainFrame'
-mainFrame.Size = UDim2.new(0, 200, 0, 125)
-mainFrame.Position = UDim2.new(0, 10, 1, -135) -- Góc dưới trái
+mainFrame.Size = UDim2.new(0, 200, 0, 165)
+mainFrame.Position = UDim2.new(0, 10, 1, -175) -- Góc dưới trái
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
@@ -63,7 +64,7 @@ btnSpamSlap.Name = 'SpamSlapBtn'
 btnSpamSlap.Size = UDim2.new(1, -20, 0, 35)
 btnSpamSlap.Position = UDim2.new(0, 10, 0, 80)
 btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 150, 220)
-btnSpamSlap.Text = 'Spam Slap: OFF (R để bật/tắt)'
+btnSpamSlap.Text = 'Spam Slap: OFF (R)'
 btnSpamSlap.TextColor3 = Color3.fromRGB(255, 255, 255)
 btnSpamSlap.Font = Enum.Font.Gotham
 btnSpamSlap.TextSize = 13
@@ -73,8 +74,42 @@ local btn2Corner = Instance.new('UICorner')
 btn2Corner.CornerRadius = UDim.new(0, 6)
 btn2Corner.Parent = btnSpamSlap
 
--- ⚙️ Biến spam
+-- 🟣 Nút 3: X-Ray
+local btnXRay = Instance.new('TextButton')
+btnXRay.Name = 'XRayBtn'
+btnXRay.Size = UDim2.new(1, -20, 0, 35)
+btnXRay.Position = UDim2.new(0, 10, 0, 120)
+btnXRay.BackgroundColor3 = Color3.fromRGB(150, 50, 220)
+btnXRay.Text = 'X-Ray Plots: OFF'
+btnXRay.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnXRay.Font = Enum.Font.Gotham
+btnXRay.TextSize = 13
+btnXRay.Parent = mainFrame
+
+local btn3Corner = Instance.new('UICorner')
+btn3Corner.CornerRadius = UDim.new(0, 6)
+btn3Corner.Parent = btnXRay
+
+-- ⚙️ Biến
 local isSpamming = false
+local xrayEnabled = false
+
+-- X-Ray Variables
+local ModifiedParts = {}
+local OriginalProperties = {}
+local XrayTransparency = 0.7
+
+-- Tìm folder Plots
+local PlotsFolder = Workspace:FindFirstChild("Plots")
+if not PlotsFolder then
+    local possibleNames = {"Plot", "plots", "Buildings", "Houses", "Bases"}
+    for _, name in ipairs(possibleNames) do
+        PlotsFolder = Workspace:FindFirstChild(name)
+        if PlotsFolder then
+            break
+        end
+    end
+end
 
 -- 🧹 Hàm xóa avatar
 local function clearMyAvatar()
@@ -103,9 +138,7 @@ end
 local function getSlapTool()
     local backpack = player:WaitForChild('Backpack')
     for _, item in pairs(backpack:GetChildren()) do
-        if
-            item:IsA('Tool') and string.find(string.lower(item.Name), 'slap')
-        then
+        if item:IsA('Tool') and string.find(string.lower(item.Name), 'slap') then
             return item
         end
     end
@@ -113,10 +146,7 @@ local function getSlapTool()
     local character = player.Character
     if character then
         for _, item in pairs(character:GetChildren()) do
-            if
-                item:IsA('Tool')
-                and string.find(string.lower(item.Name), 'slap')
-            then
+            if item:IsA('Tool') and string.find(string.lower(item.Name), 'slap') then
                 return item
             end
         end
@@ -152,6 +182,92 @@ local function stopSpamSlap()
     isSpamming = false
 end
 
+-- 👁️ X-Ray Functions
+local function isInPlots(part)
+    if not PlotsFolder then return false end
+    
+    local current = part
+    while current and current ~= Workspace do
+        if current == PlotsFolder then
+            return true
+        end
+        current = current.Parent
+    end
+    return false
+end
+
+local function isWall(part)
+    if not part:IsA("BasePart") then return false end
+    
+    if part.Parent and (part.Parent:FindFirstChild("Humanoid") or 
+       part.Parent.Parent and part.Parent.Parent:FindFirstChild("Humanoid")) then
+        return false
+    end
+    
+    if not isInPlots(part) then
+        return false
+    end
+    
+    return true
+end
+
+local function saveOriginalProperties(part)
+    if not OriginalProperties[part] then
+        OriginalProperties[part] = {
+            Transparency = part.Transparency,
+        }
+    end
+end
+
+local function applyXray(part)
+    if isWall(part) then
+        saveOriginalProperties(part)
+        part.Transparency = XrayTransparency
+        ModifiedParts[part] = true
+    end
+end
+
+local function restorePart(part)
+    if OriginalProperties[part] then
+        local props = OriginalProperties[part]
+        part.Transparency = props.Transparency
+        ModifiedParts[part] = nil
+    end
+end
+
+local function applyXrayToPlots()
+    if not PlotsFolder then return end
+    
+    for _, obj in pairs(PlotsFolder:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            applyXray(obj)
+        end
+    end
+end
+
+local function restorePlots()
+    for part, _ in pairs(ModifiedParts) do
+        if part and part.Parent then
+            restorePart(part)
+        end
+    end
+    ModifiedParts = {}
+end
+
+local function toggleXray()
+    xrayEnabled = not xrayEnabled
+    
+    if xrayEnabled then
+        btnXRay.Text = 'X-Ray Plots: ON'
+        btnXRay.BackgroundColor3 = Color3.fromRGB(100, 220, 100)
+        applyXrayToPlots()
+    else
+        btnXRay.Text = 'X-Ray Plots: OFF'
+        btnXRay.BackgroundColor3 = Color3.fromRGB(150, 50, 220)
+        restorePlots()
+    end
+end
+
 -- 🎯 Nút xóa avatar (click)
 btnClearAvatar.MouseButton1Click:Connect(function()
     clearAllAvatars()
@@ -165,14 +281,19 @@ btnSpamSlap.MouseButton1Click:Connect(function()
     isSpamming = not isSpamming
 
     if isSpamming then
-        btnSpamSlap.Text = 'Spam Slap: ON (R để bật/tắt)'
+        btnSpamSlap.Text = 'Spam Slap: ON (R)'
         btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 220, 100)
         startSpamSlap()
     else
-        btnSpamSlap.Text = 'Spam Slap: OFF (R để bật/tắt)'
+        btnSpamSlap.Text = 'Spam Slap: OFF (R)'
         btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 150, 220)
         stopSpamSlap()
     end
+end)
+
+-- 🟣 Nút X-Ray (click toggle)
+btnXRay.MouseButton1Click:Connect(function()
+    toggleXray()
 end)
 
 -- ⌨️ Phím R bật/tắt Spam Slap
@@ -185,15 +306,27 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         isSpamming = not isSpamming
 
         if isSpamming then
-            btnSpamSlap.Text = 'Spam Slap: ON (R để bật/tắt)'
+            btnSpamSlap.Text = 'Spam Slap: ON (R)'
             btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 220, 100)
             startSpamSlap()
         else
-            btnSpamSlap.Text = 'Spam Slap: OFF (R để bật/tắt)'
+            btnSpamSlap.Text = 'Spam Slap: OFF (R)'
             btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 150, 220)
             stopSpamSlap()
         end
     end
 end)
 
-print('✅ Mini Menu loaded hoàn tất!')
+-- Theo dõi part mới trong Plots
+if PlotsFolder then
+    PlotsFolder.DescendantAdded:Connect(function(obj)
+        if xrayEnabled and obj:IsA("BasePart") then
+            task.wait(0.1)
+            applyXray(obj)
+        end
+    end)
+end
+
+if PlotsFolder then
+else
+end

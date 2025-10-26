@@ -1,315 +1,332 @@
--- Mini Menu GUI Script với X-Ray (đã loại trừ toàn bộ folder/model có tên chứa "claim")
+-- 🌟 MINI MENU GUI FULL SCRIPT (Auto Clear Outfit + X-Ray skip “claim” + Bệ Nâng có check trần)
 -- Đặt trong StarterGui hoặc StarterPlayerScripts (LocalScript)
 
 local Players = game:GetService('Players')
 local UserInputService = game:GetService('UserInputService')
+local RunService = game:GetService('RunService')
 local Workspace = game:GetService('Workspace')
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild('PlayerGui')
 
--- 🖥️ Tạo ScreenGui
-local screenGui = Instance.new('ScreenGui')
+-- 🖥️ GUI Setup
+local screenGui = Instance.new('ScreenGui', playerGui)
 screenGui.Name = 'MiniMenu'
 screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui
 
--- 🎛️ Frame chính (tăng chiều cao)
-local mainFrame = Instance.new('Frame')
+local mainFrame = Instance.new('Frame', screenGui)
 mainFrame.Name = 'MainFrame'
-mainFrame.Size = UDim2.new(0, 200, 0, 165)
-mainFrame.Position = UDim2.new(0, 10, 1, -175)
+mainFrame.Size = UDim2.new(0, 200, 0, 205)
+mainFrame.Position = UDim2.new(0, 10, 1, -215)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
-mainFrame.Parent = screenGui
+Instance.new('UICorner', mainFrame).CornerRadius = UDim.new(0, 10)
 
-local corner = Instance.new('UICorner')
-corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = mainFrame
-
--- 🏷️ Tiêu đề
-local title = Instance.new('TextLabel')
-title.Name = 'Title'
+local title = Instance.new('TextLabel', mainFrame)
 title.Size = UDim2.new(1, 0, 0, 30)
 title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-title.Text = 'Menu'
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Text = 'Mini Menu'
+title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 14
-title.Parent = mainFrame
+Instance.new('UICorner', title).CornerRadius = UDim.new(0, 10)
 
-local titleCorner = Instance.new('UICorner')
-titleCorner.CornerRadius = UDim.new(0, 10)
-titleCorner.Parent = title
+-- 🔘 Helper
+local function makeButton(name, text, color, posY)
+	local btn = Instance.new('TextButton', mainFrame)
+	btn.Name = name
+	btn.Size = UDim2.new(1, -20, 0, 35)
+	btn.Position = UDim2.new(0, 10, 0, posY)
+	btn.BackgroundColor3 = color
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Font = Enum.Font.Gotham
+	btn.TextSize = 13
+	btn.Text = text
+	Instance.new('UICorner', btn).CornerRadius = UDim.new(0, 6)
+	return btn
+end
 
--- 🔴 Nút 1: Xóa Avatar
-local btnClearAvatar = Instance.new('TextButton')
-btnClearAvatar.Name = 'ClearAvatarBtn'
-btnClearAvatar.Size = UDim2.new(1, -20, 0, 35)
-btnClearAvatar.Position = UDim2.new(0, 10, 0, 40)
-btnClearAvatar.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
-btnClearAvatar.Text = 'Xóa Avatar (Tất cả)'
-btnClearAvatar.TextColor3 = Color3.fromRGB(255, 255, 255)
-btnClearAvatar.Font = Enum.Font.Gotham
-btnClearAvatar.TextSize = 13
-btnClearAvatar.Parent = mainFrame
+-- 🎛 Buttons
+local btnClearAvatar = makeButton('ClearAvatarBtn', 'Xóa Avatar (Tất cả)', Color3.fromRGB(220, 50, 50), 40)
+local btnSpamSlap   = makeButton('SpamSlapBtn', 'Spam Slap: OFF (R)', Color3.fromRGB(50, 150, 220), 80)
+local btnXRay       = makeButton('XRayBtn', 'X-Ray Plots: OFF', Color3.fromRGB(150, 50, 220), 120)
+local btnLift       = makeButton('LiftBtn', 'Bệ Nâng: OFF (C)', Color3.fromRGB(255, 140, 0), 160)
 
-local btn1Corner = Instance.new('UICorner')
-btn1Corner.CornerRadius = UDim.new(0, 6)
-btn1Corner.Parent = btnClearAvatar
-
--- 🔵 Nút 2: Spam Slap
-local btnSpamSlap = Instance.new('TextButton')
-btnSpamSlap.Name = 'SpamSlapBtn'
-btnSpamSlap.Size = UDim2.new(1, -20, 0, 35)
-btnSpamSlap.Position = UDim2.new(0, 10, 0, 80)
-btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 150, 220)
-btnSpamSlap.Text = 'Spam Slap: OFF (R)'
-btnSpamSlap.TextColor3 = Color3.fromRGB(255, 255, 255)
-btnSpamSlap.Font = Enum.Font.Gotham
-btnSpamSlap.TextSize = 13
-btnSpamSlap.Parent = mainFrame
-
-local btn2Corner = Instance.new('UICorner')
-btn2Corner.CornerRadius = UDim.new(0, 6)
-btn2Corner.Parent = btnSpamSlap
-
--- 🟣 Nút 3: X-Ray
-local btnXRay = Instance.new('TextButton')
-btnXRay.Name = 'XRayBtn'
-btnXRay.Size = UDim2.new(1, -20, 0, 35)
-btnXRay.Position = UDim2.new(0, 10, 0, 120)
-btnXRay.BackgroundColor3 = Color3.fromRGB(150, 50, 220)
-btnXRay.Text = 'X-Ray Plots: OFF'
-btnXRay.TextColor3 = Color3.fromRGB(255, 255, 255)
-btnXRay.Font = Enum.Font.Gotham
-btnXRay.TextSize = 13
-btnXRay.Parent = mainFrame
-
-local btn3Corner = Instance.new('UICorner')
-btn3Corner.CornerRadius = UDim.new(0, 6)
-btn3Corner.Parent = btnXRay
-
--- ⚙️ Biến
+-- ⚙️ Variables
 local isSpamming = false
 local xrayEnabled = false
+local liftEnabled = false
 
--- X-Ray Variables
-local ModifiedParts = {}
-local OriginalProperties = {}
-local XrayTransparency = 0.7
-
--- Tìm folder Plots
-local PlotsFolder = Workspace:FindFirstChild("Plots")
-if not PlotsFolder then
-    local possibleNames = {"Plot", "plots", "Buildings", "Houses", "Bases"}
-    for _, name in ipairs(possibleNames) do
-        PlotsFolder = Workspace:FindFirstChild(name)
-        if PlotsFolder then
-            break
-        end
-    end
-end
-
--- 🧹 Hàm xóa avatar
+-- ======================= 🧍 AUTO CLEAR OUTFIT =======================
 local function clearMyAvatar()
-    player:ClearCharacterAppearance()
-    print('✅ Đã xóa outfit của BẠN!')
+	player:ClearCharacterAppearance()
+	print('✅ Đã xóa outfit của BẠN!')
 end
-
 local function clearAllAvatars()
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr.Character then
-            plr:ClearCharacterAppearance()
-        end
-    end
-    print('✅ Đã xóa outfit của TẤT CẢ người chơi (local only)')
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr.Character then plr:ClearCharacterAppearance() end
+	end
+	print('✅ Đã xóa outfit của TẤT CẢ người chơi (local only)')
 end
+if player.Character then clearMyAvatar() else player.CharacterAdded:Wait(); clearMyAvatar() end
 
-if player.Character then
-    clearMyAvatar()
-else
-    player.CharacterAdded:Wait()
-    clearMyAvatar()
-end
-
--- 🔍 Slap Tool
+-- ======================= ✋ SPAM SLAP =======================
 local function getSlapTool()
-    local backpack = player:WaitForChild('Backpack')
-    for _, item in pairs(backpack:GetChildren()) do
-        if item:IsA('Tool') and string.find(string.lower(item.Name), 'slap') then
-            return item
-        end
-    end
-    local character = player.Character
-    if character then
-        for _, item in pairs(character:GetChildren()) do
-            if item:IsA('Tool') and string.find(string.lower(item.Name), 'slap') then
-                return item
-            end
-        end
-    end
-    return nil
+	local backpack = player:WaitForChild('Backpack')
+	for _, item in ipairs(backpack:GetChildren()) do
+		if item:IsA('Tool') and string.find(string.lower(item.Name), 'slap') then
+			return item
+		end
+	end
+	local char = player.Character
+	if char then
+		for _, item in ipairs(char:GetChildren()) do
+			if item:IsA('Tool') and string.find(string.lower(item.Name), 'slap') then
+				return item
+			end
+		end
+	end
 end
 
 local function startSpamSlap()
-    task.spawn(function()
-        while isSpamming do
-            local character = player.Character
-            if character then
-                local humanoid = character:FindFirstChild('Humanoid')
-                local tool = getSlapTool()
-                if humanoid and tool then
-                    if tool.Parent == player.Backpack then
-                        humanoid:EquipTool(tool)
-                    end
-                    task.wait(0.1)
-                else
-                    task.wait(0.5)
-                end
-            else
-                task.wait(0.5)
-            end
-        end
-    end)
+	task.spawn(function()
+		while isSpamming do
+			local char = player.Character
+			if char then
+				local hum = char:FindFirstChild('Humanoid')
+				local tool = getSlapTool()
+				if hum and tool then
+					if tool.Parent == player.Backpack then hum:EquipTool(tool) end
+					task.wait(0.1)
+				else task.wait(0.5) end
+			else task.wait(0.5) end
+		end
+	end)
 end
 
-local function stopSpamSlap()
-    isSpamming = false
+-- ======================= 👁️ X-RAY (Skip “claim”) =======================
+local ModifiedParts, OriginalProperties = {}, {}
+local XrayTransparency = 0.7
+local PlotsFolder = Workspace:FindFirstChild("Plots")
+local possible = {"Plot","plots","Buildings","Houses","Bases"}
+if not PlotsFolder then
+	for _, n in ipairs(possible) do
+		PlotsFolder = Workspace:FindFirstChild(n)
+		if PlotsFolder then break end
+	end
 end
 
--- 👁️ X-Ray Functions
 local function isInPlots(part)
-    if not PlotsFolder then return false end
-    local current = part
-    while current and current ~= Workspace do
-        if current == PlotsFolder then
-            return true
-        end
-        current = current.Parent
-    end
-    return false
+	if not PlotsFolder then return false end
+	local c = part
+	while c and c ~= Workspace do
+		if c == PlotsFolder then return true end
+		c = c.Parent
+	end
 end
-
--- ⚙️ Mới: bỏ toàn bộ các part nằm trong folder/model có tên chứa “claim”
 local function isInsideClaim(part)
-    local current = part
-    while current and current ~= Workspace do
-        if string.find(string.lower(current.Name), "claim") then
-            return true
-        end
-        current = current.Parent
-    end
-    return false
+	local c = part
+	while c and c ~= Workspace do
+		if string.find(string.lower(c.Name), "claim") then return true end
+		c = c.Parent
+	end
 end
-
 local function isWall(part)
-    if not part:IsA("BasePart") then return false end
-    if part.Parent and (part.Parent:FindFirstChild("Humanoid") or 
-        (part.Parent.Parent and part.Parent.Parent:FindFirstChild("Humanoid"))) then
-        return false
-    end
-    if isInsideClaim(part) then return false end
-    if not isInPlots(part) then return false end
-    return true
+	if not part:IsA("BasePart") then return false end
+	if part.Parent and (part.Parent:FindFirstChild("Humanoid") or (part.Parent.Parent and part.Parent.Parent:FindFirstChild("Humanoid"))) then
+		return false
+	end
+	if isInsideClaim(part) then return false end
+	return isInPlots(part)
 end
-
-local function saveOriginalProperties(part)
-    if not OriginalProperties[part] then
-        OriginalProperties[part] = { Transparency = part.Transparency }
-    end
-end
-
 local function applyXray(part)
-    if isWall(part) then
-        saveOriginalProperties(part)
-        part.Transparency = XrayTransparency
-        ModifiedParts[part] = true
-    end
+	if isWall(part) then
+		if not OriginalProperties[part] then
+			OriginalProperties[part] = {Transparency = part.Transparency}
+		end
+		part.Transparency = XrayTransparency
+		ModifiedParts[part] = true
+	end
 end
-
-local function restorePart(part)
-    if OriginalProperties[part] then
-        local props = OriginalProperties[part]
-        part.Transparency = props.Transparency
-        ModifiedParts[part] = nil
-    end
-end
-
-local function applyXrayToPlots()
-    if not PlotsFolder then return end
-    for _, obj in pairs(PlotsFolder:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            applyXray(obj)
-        end
-    end
-end
-
 local function restorePlots()
-    for part, _ in pairs(ModifiedParts) do
-        if part and part.Parent then
-            restorePart(part)
-        end
-    end
-    ModifiedParts = {}
+	for part, _ in pairs(ModifiedParts) do
+		if part and part.Parent and OriginalProperties[part] then
+			part.Transparency = OriginalProperties[part].Transparency
+		end
+	end
+	table.clear(ModifiedParts)
 end
-
 local function toggleXray()
-    xrayEnabled = not xrayEnabled
-    if xrayEnabled then
-        btnXRay.Text = 'X-Ray Plots: ON'
-        btnXRay.BackgroundColor3 = Color3.fromRGB(100, 220, 100)
-        applyXrayToPlots()
-    else
-        btnXRay.Text = 'X-Ray Plots: OFF'
-        btnXRay.BackgroundColor3 = Color3.fromRGB(150, 50, 220)
-        restorePlots()
-    end
+	xrayEnabled = not xrayEnabled
+	if xrayEnabled then
+		btnXRay.Text = 'X-Ray Plots: ON'
+		btnXRay.BackgroundColor3 = Color3.fromRGB(100, 220, 100)
+		for _, obj in pairs(PlotsFolder:GetDescendants()) do
+			if obj:IsA("BasePart") then applyXray(obj) end
+		end
+	else
+		btnXRay.Text = 'X-Ray Plots: OFF'
+		btnXRay.BackgroundColor3 = Color3.fromRGB(150, 50, 220)
+		restorePlots()
+	end
 end
-
-btnClearAvatar.MouseButton1Click:Connect(function()
-    clearAllAvatars()
-    btnClearAvatar.BackgroundColor3 = Color3.fromRGB(100, 220, 100)
-    task.wait(0.2)
-    btnClearAvatar.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
-end)
-
-btnSpamSlap.MouseButton1Click:Connect(function()
-    isSpamming = not isSpamming
-    if isSpamming then
-        btnSpamSlap.Text = 'Spam Slap: ON (R)'
-        btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 220, 100)
-        startSpamSlap()
-    else
-        btnSpamSlap.Text = 'Spam Slap: OFF (R)'
-        btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 150, 220)
-        stopSpamSlap()
-    end
-end)
-
-btnXRay.MouseButton1Click:Connect(toggleXray)
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.R then
-        isSpamming = not isSpamming
-        if isSpamming then
-            btnSpamSlap.Text = 'Spam Slap: ON (R)'
-            btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 220, 100)
-            startSpamSlap()
-        else
-            btnSpamSlap.Text = 'Spam Slap: OFF (R)'
-            btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 150, 220)
-            stopSpamSlap()
-        end
-    end
-end)
-
 if PlotsFolder then
-    PlotsFolder.DescendantAdded:Connect(function(obj)
-        if xrayEnabled and obj:IsA("BasePart") then
-            task.wait(0.1)
-            applyXray(obj)
-        end
-    end)
+	PlotsFolder.DescendantAdded:Connect(function(obj)
+		if xrayEnabled and obj:IsA("BasePart") then task.wait(0.1) applyXray(obj) end
+	end)
 end
+
+-- ======================= 🟦 BỆ NÂNG (Có check trần) =======================
+local Settings = {
+	PlatformSize = Vector3.new(6, 1, 6),
+	LiftSpeed = 50,
+	PlatformColor = Color3.fromRGB(100, 100, 255),
+	Transparency = 0.3,
+	CheckDistance = 8
+}
+local platform, liftConnection
+local isBlocked = false
+
+local function checkCeiling()
+	local char = player.Character
+	if not char then return false end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return false end
+
+	local rayOrigin = hrp.Position + Vector3.new(0, 2, 0)
+	local rayDirection = Vector3.new(0, Settings.CheckDistance, 0)
+
+	local params = RaycastParams.new()
+	params.FilterDescendantsInstances = {char, platform}
+	params.FilterType = Enum.RaycastFilterType.Exclude
+
+	local result = workspace:Raycast(rayOrigin, rayDirection, params)
+	if result then
+		local dist = (result.Position - rayOrigin).Magnitude
+		if dist < 3 then return true end
+	end
+	return false
+end
+
+local function createPlatform()
+	if platform then platform:Destroy() end
+	local char = player.Character
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	platform = Instance.new("Part")
+	platform.Size = Settings.PlatformSize
+	platform.Anchored = true
+	platform.CanCollide = true
+	platform.Material = Enum.Material.Neon
+	platform.Color = Settings.PlatformColor
+	platform.Transparency = Settings.Transparency
+	platform.Name = "LiftPlatform"
+	platform.Parent = workspace
+
+	local posBelow = hrp.Position - Vector3.new(0, 3.5, 0)
+	platform.CFrame = CFrame.new(posBelow)
+
+	local light = Instance.new("PointLight", platform)
+	light.Brightness = 2
+	light.Range = 15
+	light.Color = Settings.PlatformColor
+
+	isBlocked = false
+	return platform
+end
+
+local function stopLifting()
+	if liftConnection then liftConnection:Disconnect() liftConnection = nil end
+	if platform then platform:Destroy() platform = nil end
+	isBlocked = false
+end
+
+local function startLifting()
+	if not platform then return end
+	if liftConnection then liftConnection:Disconnect() end
+	liftConnection = RunService.Heartbeat:Connect(function(dt)
+		if not platform or not platform.Parent then stopLifting(); return end
+		local char = player.Character
+		if not char then return end
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		if not hrp then return end
+
+		if checkCeiling() then
+			if not isBlocked then
+				isBlocked = true
+				platform.Color = Color3.fromRGB(255, 100, 100)
+			end
+			local x, z = hrp.Position.X, hrp.Position.Z
+			local y = platform.Position.Y
+			platform.CFrame = CFrame.new(x, y, z)
+			return
+		else
+			if isBlocked then
+				isBlocked = false
+				platform.Color = Settings.PlatformColor
+			end
+		end
+
+		local current = platform.Position
+		local newY = current.Y + Settings.LiftSpeed * dt
+		local x, z = hrp.Position.X, hrp.Position.Z
+		platform.CFrame = CFrame.new(x, newY, z)
+	end)
+end
+
+local function toggleLift()
+	liftEnabled = not liftEnabled
+	if liftEnabled then
+		btnLift.Text = "Bệ Nâng: ON (C)"
+		btnLift.BackgroundColor3 = Color3.fromRGB(100, 220, 100)
+		createPlatform()
+		startLifting()
+	else
+		btnLift.Text = "Bệ Nâng: OFF (C)"
+		btnLift.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
+		stopLifting()
+	end
+end
+player.CharacterAdded:Connect(stopLifting)
+
+-- ======================= 🖱️ BUTTONS =======================
+btnClearAvatar.MouseButton1Click:Connect(function()
+	clearAllAvatars()
+	btnClearAvatar.BackgroundColor3 = Color3.fromRGB(100, 220, 100)
+	task.wait(0.2)
+	btnClearAvatar.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+end)
+btnSpamSlap.MouseButton1Click:Connect(function()
+	isSpamming = not isSpamming
+	if isSpamming then
+		btnSpamSlap.Text = 'Spam Slap: ON (R)'
+		btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 220, 100)
+		startSpamSlap()
+	else
+		btnSpamSlap.Text = 'Spam Slap: OFF (R)'
+		btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 150, 220)
+	end
+end)
+btnXRay.MouseButton1Click:Connect(toggleXray)
+btnLift.MouseButton1Click:Connect(toggleLift)
+
+-- ======================= ⌨️ HOTKEYS =======================
+-- ======================= ⌨️ HOTKEYS =======================
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed then return end
+	if input.KeyCode == Enum.KeyCode.R then
+		isSpamming = not isSpamming
+		if isSpamming then
+			btnSpamSlap.Text = 'Spam Slap: ON (R)'
+			btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 220, 100)
+			startSpamSlap()
+		else
+			btnSpamSlap.Text = 'Spam Slap: OFF (R)'
+			btnSpamSlap.BackgroundColor3 = Color3.fromRGB(50, 150, 220)
+		end
+	elseif input.KeyCode == Enum.KeyCode.C then
+		toggleLift()
+	end
+end)

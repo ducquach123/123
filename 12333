@@ -102,7 +102,7 @@ local AUTO_HOLD_ENABLED = true -- mặc định OFF
 -- ======================= AUTO HOLD E ==================
 ---------------------------------------------------------
 local HOLD_CHECK_DELAY = 0.02
-local MAX_HOLD_TIME = 8
+local MAX_HOLD_TIME = 3
 
 local function isStealPrompt(prompt)
 	if not prompt then return false end

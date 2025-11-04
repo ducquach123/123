@@ -96,7 +96,7 @@ local btnAutoHold   = makeButton('AutoHoldBtn', 'Auto-Hold Steal: OFF (T)', Colo
 local isSpamming = false
 local xrayEnabled = false
 local liftEnabled = false
-local AUTO_HOLD_ENABLED = false -- mặc định OFF
+local AUTO_HOLD_ENABLED = true                                       -- mặc định OFF
 
 ---------------------------------------------------------
 -- ======================= AUTO HOLD E (FIX+) ==================

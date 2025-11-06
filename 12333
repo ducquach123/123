@@ -1,6 +1,3 @@
--- 🌟 MINI MENU GUI FULL SCRIPT + AUTO-HOLD STEAL FIX (v2) + 🖱️ DRAGGABLE GUI
--- Đặt trong StarterGui hoặc StarterPlayerScripts (LocalScript)
-
 local Players = game:GetService('Players')
 local UserInputService = game:GetService('UserInputService')
 local RunService = game:GetService('RunService')
@@ -24,18 +21,22 @@ mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
 Instance.new('UICorner', mainFrame).CornerRadius = UDim.new(0, 10)
 
-local title = Instance.new('TextLabel', mainFrame)
+local title = Instance.new('TextButton', mainFrame)
 title.Size = UDim2.new(1, 0, 0, 30)
 title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-title.Text = 'Mini Menu'
+title.Text = 'Mini Menu ▼'
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 14
 Instance.new('UICorner', title).CornerRadius = UDim.new(0, 10)
 
+---------------------------------------------------------
 -- 🖱️ Cho phép kéo GUI bằng phần tiêu đề
+---------------------------------------------------------
 local dragging = false
 local dragInput, dragStart, startPos
+local collapsed = false
+local buttons = {}
 
 local function update(input)
 	local delta = input.Position - dragStart
@@ -46,7 +47,7 @@ local function update(input)
 end
 
 title.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = true
 		dragStart = input.Position
 		startPos = mainFrame.Position
@@ -59,7 +60,7 @@ title.InputBegan:Connect(function(input)
 end)
 
 title.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
 		dragInput = input
 	end
 end)
@@ -70,7 +71,9 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 🔘 Helper
+---------------------------------------------------------
+-- 🔘 Helper tạo nút
+---------------------------------------------------------
 local function makeButton(name, text, color, posY)
 	local btn = Instance.new('TextButton', mainFrame)
 	btn.Name = name
@@ -82,15 +85,37 @@ local function makeButton(name, text, color, posY)
 	btn.TextSize = 13
 	btn.Text = text
 	Instance.new('UICorner', btn).CornerRadius = UDim.new(0, 6)
+	table.insert(buttons, btn)
 	return btn
 end
 
+---------------------------------------------------------
 -- 🎛 Buttons
+---------------------------------------------------------
 local btnClearAvatar = makeButton('ClearAvatarBtn', 'Xóa Avatar (Tất cả)', Color3.fromRGB(220, 50, 50), 40)
 local btnSpamSlap   = makeButton('SpamSlapBtn', 'Spam Slap: OFF (R)', Color3.fromRGB(50, 150, 220), 80)
 local btnXRay       = makeButton('XRayBtn', 'X-Ray Plots: OFF', Color3.fromRGB(150, 50, 220), 120)
 local btnLift       = makeButton('LiftBtn', 'Bệ Nâng: OFF (C)', Color3.fromRGB(255, 140, 0), 160)
 local btnAutoHold   = makeButton('AutoHoldBtn', 'Auto-Hold Steal: OFF (T)', Color3.fromRGB(255, 200, 50), 200)
+
+---------------------------------------------------------
+-- 🔽 Toggle rút gọn / mở rộng menu
+---------------------------------------------------------
+local function toggleCollapse()
+	collapsed = not collapsed
+	if collapsed then
+		title.Text = "Mini Menu ▲"
+		for _, b in ipairs(buttons) do b.Visible = false end
+		mainFrame:TweenSize(UDim2.new(0, 200, 0, 30), "Out", "Quad", 0.2, true)
+	else
+		title.Text = "Mini Menu ▼"
+		for _, b in ipairs(buttons) do b.Visible = true end
+		mainFrame:TweenSize(UDim2.new(0, 200, 0, 245), "Out", "Quad", 0.25, true)
+	end
+end
+title.MouseButton1Click:Connect(function()
+	if not dragging then toggleCollapse() end
+end)
 
 -- ⚙️ Variables
 local isSpamming = false
